@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Platforms>x64</Platforms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Aleksej.Finance.Excel</RootNamespace>
+    <AssemblyName>Aleksej.Finance.Excel</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ExcelDNA: provides [ExcelFunction] attribute and .xll build target -->
+    <PackageReference Include="ExcelDna.AddIn"     Version="1.8.0" />
+    <PackageReference Include="ExcelDna.Integration" Version="1.8.0" />
+
+    <!--
+      For local development, use the project reference below.
+      Once published to NuGet, swap to:
+        <PackageReference Include="AleksejCupic.FinancialMath" Version="1.0.0" />
+    -->
+    <ProjectReference Include="..\financial-math\AleksejCupic.FinancialMath.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Aleksej.Finance.Excel.dna" ExcelDnaAddIn="true" />
+  </ItemGroup>
+
+</Project>

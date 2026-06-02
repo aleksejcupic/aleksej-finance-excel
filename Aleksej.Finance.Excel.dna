@@ -1,0 +1,3 @@
+<DnaLibrary Name="Finance Add-In" RuntimeVersion="v4.0" ShadowCopyFiles="true">
+  <ExternalLibrary Path="Aleksej.Finance.Excel.dll" ExplicitExports="false" LoadFromBytes="true" />
+</DnaLibrary>
