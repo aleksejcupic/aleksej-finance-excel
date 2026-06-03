@@ -37,6 +37,17 @@
     <None Include="Aleksej.Finance.Excel.dna" ExcelDnaAddIn="true" />
   </ItemGroup>
 
+  <!-- The test project lives under tests\ (this project sits at the repo root). Keep its
+       sources out of the add-in's default *.cs glob. -->
+  <ItemGroup>
+    <Compile Remove="tests\**\*.cs" />
+  </ItemGroup>
+
+  <!-- Let the headless unit-test project reach internal helpers (In, Fn, RangeHelper). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aleksej.Finance.Excel.UnitTests" />
+  </ItemGroup>
+
   <!--
     ExcelDNA names its packed output "<name>64-packed.xll". After packing, copy that single
     self-contained 64-bit add-in to one clean filename: <output>\Aleksej.Finance.ExcelAddin.xll.

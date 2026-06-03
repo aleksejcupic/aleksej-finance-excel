@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    # ExcelDNA produces a Windows .xll, so the add-in builds on Windows only.
+  build-test:
+    # ExcelDNA produces a Windows .xll, so everything builds on Windows.
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,8 +18,19 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore
-        run: dotnet restore
+      # Headless unit tests of the add-in's own logic (validation, normalization, range
+      # conversion). No Excel required -> runnable in CI. This also builds the add-in.
+      - name: Unit tests + coverage
+        run: dotnet test tests/Aleksej.Finance.Excel.UnitTests/Aleksej.Finance.Excel.UnitTests.csproj -c Release /p:Platform=x64 --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
-      - name: Build
-        run: dotnet build -c Release --no-restore
+      # The ExcelDna.Testing integration suite drives REAL Excel, so it can only RUN locally
+      # (no Excel on hosted runners). We compile it here to catch breakage.
+      - name: Compile-check the Excel integration suite
+        run: dotnet build tests/Aleksej.Finance.Excel.Tests/Aleksej.Finance.Excel.Tests.csproj -c Release /p:Platform=x64
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./TestResults
+          fail_ci_if_error: false

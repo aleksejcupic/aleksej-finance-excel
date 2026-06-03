@@ -3,3 +3,7 @@ obj/
 .vs/
 *.user
 .DS_Store
+TestResults/
+
+# Per-developer F5 launch config (machine-specific absolute paths to Excel + the .xll).
+**/launchSettings.json
