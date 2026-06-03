@@ -2,7 +2,7 @@
 
 Excel add-in for financial calculations built with ExcelDNA. Options pricing (Black-Scholes and Greeks), bond math, and risk metrics as native Excel functions.
 
-**Download:** *(GitHub Releases — coming soon)*
+**Download:** grab `Aleksej.Finance.ExcelAddin.xll` from the [latest release](https://github.com/aleksejcupic/aleksej-finance-excel/releases/latest). A single self-contained 64-bit file — no other downloads needed.
 
 ---
 
@@ -48,21 +48,21 @@ Excel add-in for financial calculations built with ExcelDNA. Options pricing (Bl
 
 ## Architecture
 
-The function implementations live in [`AleksejCupic.FinancialMath`](https://github.com/aleksejcupic/financial-math) — a separate NuGet library. This add-in is a thin ExcelDNA wrapper that exposes those calculations as Excel UDFs.
+The function implementations live in [`Aleksej.Finance`](https://www.nuget.org/packages/Aleksej.Finance) ([source](https://github.com/aleksejcupic/aleksej-finance)) — a separate NuGet library. This add-in is a thin ExcelDNA wrapper that exposes those calculations as Excel UDFs.
 
 ```
-AleksejCupic.FinancialMath  (NuGet — math logic)
+Aleksej.Finance                       (NuGet — math logic)
         ↑
-ExcelFinanceAddin            (ExcelDNA — Excel wrapper)
+Aleksej.Finance.Excel                 (ExcelDNA — Excel wrapper)
         ↓
-ExcelFinanceAddin-packed.xll (distributed via GitHub Releases)
+Aleksej.Finance.ExcelAddin.xll             (single self-contained 64-bit add-in)
 ```
 
 ---
 
 ## Install
 
-1. Download `ExcelFinanceAddin-packed.xll` from GitHub Releases
+1. Download `Aleksej.Finance.ExcelAddin.xll` from GitHub Releases
 2. Open Excel → File → Options → Add-Ins → Manage: Excel Add-ins → Go
 3. Click Browse, select the `.xll` file, click OK
 
@@ -70,15 +70,15 @@ ExcelFinanceAddin-packed.xll (distributed via GitHub Releases)
 
 ## Build from source
 
-Requires .NET 6 SDK and Windows.
+Requires the .NET SDK (8.0+) and Windows. The add-in targets **.NET Framework 4.8** (built into Windows), so the build needs no extra runtime — `Microsoft.NETFramework.ReferenceAssemblies` is restored automatically.
 
 ```bash
-git clone https://github.com/aleksejcupic/excel-finance-addin
-cd excel-finance-addin
+git clone https://github.com/aleksejcupic/aleksej-finance-excel
+cd aleksej-finance-excel
 dotnet build --configuration Release
 ```
 
-The `.xll` will be in `bin/Release/net6.0-windows/`.
+The single self-contained add-in will be at `bin/Release/net48/Aleksej.Finance.ExcelAddin.xll` — one file, no other downloads, no runtime to install.
 
 ---
 

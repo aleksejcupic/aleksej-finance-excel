@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "Excel (x64 Debug)": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+      "commandLineArgs": "\"C:\\Users\\aleks\\OneDrive\\Documents\\GitHub\\aleksej-finance-excel\\bin\\x64\\Debug\\net48\\Aleksej.Finance.ExcelAddin.xll\""
+    },
+    "Excel": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+      "commandLineArgs": "/x \"Aleksej.Finance.Excel64.xll\""
+    }
+  }
+}

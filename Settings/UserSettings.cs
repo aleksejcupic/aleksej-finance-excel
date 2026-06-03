@@ -18,6 +18,18 @@ public class UserSettings
 
     private static readonly XmlSerializer Serializer = new(typeof(UserSettings));
 
+    // ── Session cache ─────────────────────────────────────────────────────────
+    // Functions recalc constantly; without a cache every cell read would hit disk
+    // and deserialize XML. Current caches one instance per session; the ribbon calls
+    // Invalidate() after each Save() so changes still take effect immediately.
+    private static UserSettings? _cached;
+
+    /// <summary>The cached current settings. Loaded once per session (see Invalidate).</summary>
+    public static UserSettings Current => _cached ??= Load();
+
+    /// <summary>Drops the cached settings so the next access reloads from disk.</summary>
+    public static void Invalidate() => _cached = null;
+
     // ── Default calculation parameters ───────────────────────────────────────
 
     /// <summary>Annual risk-free rate used when rf is omitted (e.g. 0.05 = 5%).</summary>
@@ -37,6 +49,13 @@ public class UserSettings
 
     /// <summary>Default recovery rate for CDS functions (0.40 = 40%, industry standard).</summary>
     public double DefaultRecoveryRate { get; set; } = 0.40;
+
+    /// <summary>
+    /// When true, validation/calculation failures return standard Excel errors
+    /// (#NUM! / #VALUE!) so IFERROR can catch them. When false (default), functions
+    /// return a descriptive text message explaining what went wrong.
+    /// </summary>
+    public bool ErrorsAsExcelError { get; set; } = false;
 
     // ── Function category toggles ─────────────────────────────────────────────
 

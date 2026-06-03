@@ -1,3 +1,5 @@
-<DnaLibrary Name="Finance Add-In" RuntimeVersion="v4.0" ShadowCopyFiles="true">
-  <ExternalLibrary Path="Aleksej.Finance.Excel.dll" ExplicitExports="false" LoadFromBytes="true" />
+<DnaLibrary Name="Finance Add-In" RuntimeVersion="v4.0">
+  <ExternalLibrary Path="Aleksej.Finance.Excel.dll" ExplicitExports="false" LoadFromBytes="true" Pack="true" />
+  <!-- Embed the math library so the packed .xll is fully self-contained. -->
+  <Reference Path="Aleksej.Finance.dll" Pack="true" />
 </DnaLibrary>

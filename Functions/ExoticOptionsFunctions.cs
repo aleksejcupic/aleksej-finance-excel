@@ -1,139 +1,128 @@
 using ExcelDna.Integration;
-using AleksejCupic.FinancialMath.Options;
+using Aleksej.Finance.Options;
+using Aleksej.Finance.Excel.Constants;
 using Aleksej.Finance.Excel.Helpers;
-using Aleksej.Finance.Excel.Settings;
 
 namespace Aleksej.Finance.Excel.Functions;
 
 /// <summary>Exotic option pricing: binary, barrier, Asian, and lookback options.</summary>
 public static class ExoticOptionsFunctions
 {
-    private static bool Enabled => UserSettings.Load().EnableOptions;
-    private static string Off   => RangeHelper.DisabledMessage("Options");
-
-    [ExcelFunction(Name = "EX_BINARY_CASH", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Cash-or-nothing binary option. Pays cashPayoff if expires ITM, otherwise zero. Call: Q*exp(-rT)*N(d2). Put: Q*exp(-rT)*N(-d2).")]
+    [ExcelFunction(Name = ExoticOptionsConstants.BinaryCashName, Category = Cat.Options, IsThreadSafe = true,
+        Description = ExoticOptionsConstants.BinaryCashDesc)]
     public static object ExBinaryCash(
-        [ExcelArgument(Name = "S",          Description = "Current asset price")]                        object s,
-        [ExcelArgument(Name = "K",          Description = "Strike price")]                                object k,
-        [ExcelArgument(Name = "T",          Description = "Time to expiry in years")]                     object t,
-        [ExcelArgument(Name = "r",          Description = "Continuous risk-free rate")]                   object r,
-        [ExcelArgument(Name = "sigma",      Description = "Annualised volatility")]                       object sigma,
-        [ExcelArgument(Name = "cashPayoff", Description = "Fixed cash amount paid if ITM (default 1.0)")] object cashPayoff,
-        [ExcelArgument(Name = "isPut",      Description = "TRUE for put (pays if S<K), FALSE for call")]  object isPut)
-        => Enabled ? ExoticOptions.CashOrNothing(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(k), RangeHelper.Scalar(t),
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(sigma),
-                         RangeHelper.IsMissing(cashPayoff) ? 1.0 : RangeHelper.Scalar(cashPayoff),
-                         RangeHelper.ScalarBool(isPut))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",          Description = Arg.S)]     object s,
+        [ExcelArgument(Name = "K",          Description = Arg.K)]     object k,
+        [ExcelArgument(Name = "T",          Description = Arg.T)]     object t,
+        [ExcelArgument(Name = "r",          Description = Arg.R)]     object r,
+        [ExcelArgument(Name = "sigma",      Description = Arg.Sigma)] object sigma,
+        [ExcelArgument(Name = "cashPayoff", Description = ExoticOptionsConstants.CashPayoff)]      object cashPayoff,
+        [ExcelArgument(Name = "isPut",      Description = ExoticOptionsConstants.BinaryCashIsPut)] object isPut)
+        => Fn.Run(Category.Options, () => ExoticOptions.CashOrNothing(
+               In.Price("S", s), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma),
+               In.Num("cashPayoff", cashPayoff, ExoticOptionsConstants.DefaultCashPayoff),
+               In.Flag("isPut", isPut)));
 
-    [ExcelFunction(Name = "EX_BINARY_ASSET", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Asset-or-nothing binary option. Pays asset price S_T if expires ITM, otherwise zero. Call: S*N(d1). Put: S*N(-d1).")]
+    [ExcelFunction(Name = ExoticOptionsConstants.BinaryAssetName, Category = Cat.Options, IsThreadSafe = true,
+        Description = ExoticOptionsConstants.BinaryAssetDesc)]
     public static object ExBinaryAsset(
-        [ExcelArgument(Name = "S",     Description = "Current asset price")]   object s,
-        [ExcelArgument(Name = "K",     Description = "Strike price")]           object k,
-        [ExcelArgument(Name = "T",     Description = "Time to expiry")]         object t,
-        [ExcelArgument(Name = "r",     Description = "Risk-free rate")]         object r,
-        [ExcelArgument(Name = "sigma", Description = "Annualised volatility")]  object sigma,
-        [ExcelArgument(Name = "isPut", Description = "TRUE for put")]           object isPut)
-        => Enabled ? ExoticOptions.AssetOrNothing(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(k), RangeHelper.Scalar(t),
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(sigma), RangeHelper.ScalarBool(isPut))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",     Description = Arg.S)]                        object s,
+        [ExcelArgument(Name = "K",     Description = Arg.K)]                        object k,
+        [ExcelArgument(Name = "T",     Description = ExoticOptionsConstants.Time)]  object t,
+        [ExcelArgument(Name = "r",     Description = ExoticOptionsConstants.RiskFree)] object r,
+        [ExcelArgument(Name = "sigma", Description = Arg.Sigma)]                    object sigma,
+        [ExcelArgument(Name = "isPut", Description = ExoticOptionsConstants.IsPut)] object isPut)
+        => Fn.Run(Category.Options, () => ExoticOptions.AssetOrNothing(
+               In.Price("S", s), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma), In.Flag("isPut", isPut)));
 
-    [ExcelFunction(Name = "EX_BARRIER_CALL", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "European barrier call option (closed-form). Knock-out expires worthless if S touches H. Knock-in only activates if S touches H. isUp=TRUE means H is above current spot.")]
+    [ExcelFunction(Name = ExoticOptionsConstants.BarrierCallName, Category = Cat.Options, IsThreadSafe = true,
+        Description = ExoticOptionsConstants.BarrierCallDesc)]
     public static object ExBarrierCall(
-        [ExcelArgument(Name = "S",       Description = "Current asset price")]                                  object s,
-        [ExcelArgument(Name = "K",       Description = "Strike price")]                                          object k,
-        [ExcelArgument(Name = "H",       Description = "Barrier level")]                                         object h,
-        [ExcelArgument(Name = "T",       Description = "Time to expiry in years")]                               object t,
-        [ExcelArgument(Name = "r",       Description = "Continuous risk-free rate")]                             object r,
-        [ExcelArgument(Name = "sigma",   Description = "Annualised volatility")]                                 object sigma,
-        [ExcelArgument(Name = "knockIn", Description = "TRUE = knock-in, FALSE = knock-out (default FALSE)")]   object knockIn,
-        [ExcelArgument(Name = "isUp",    Description = "TRUE = barrier above spot (up), FALSE = below (down)")] object isUp)
-        => Enabled ? ExoticOptions.BarrierCall(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(k), RangeHelper.Scalar(h),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.Scalar(sigma),
-                         RangeHelper.ScalarBool(knockIn), RangeHelper.ScalarBool(isUp))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",       Description = Arg.S)]     object s,
+        [ExcelArgument(Name = "K",       Description = Arg.K)]     object k,
+        [ExcelArgument(Name = "H",       Description = ExoticOptionsConstants.Barrier)]        object h,
+        [ExcelArgument(Name = "T",       Description = Arg.T)]     object t,
+        [ExcelArgument(Name = "r",       Description = Arg.R)]     object r,
+        [ExcelArgument(Name = "sigma",   Description = Arg.Sigma)] object sigma,
+        [ExcelArgument(Name = "knockIn", Description = ExoticOptionsConstants.KnockInDefault)] object knockIn,
+        [ExcelArgument(Name = "isUp",    Description = ExoticOptionsConstants.IsUp)]           object isUp)
+        => Fn.Run(Category.Options, () => ExoticOptions.BarrierCall(
+               In.Price("S", s), In.Price("K", k), In.Price("H", h),
+               In.Years("T", t), In.Rate("r", r), In.Vol("sigma", sigma),
+               In.Flag("knockIn", knockIn), In.Flag("isUp", isUp)));
 
-    [ExcelFunction(Name = "EX_BARRIER_PUT", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "European barrier put option (closed-form). See EX_BARRIER_CALL for parameter details.")]
+    [ExcelFunction(Name = ExoticOptionsConstants.BarrierPutName, Category = Cat.Options, IsThreadSafe = true,
+        Description = ExoticOptionsConstants.BarrierPutDesc)]
     public static object ExBarrierPut(
-        [ExcelArgument(Name = "S",       Description = "Current asset price")]   object s,
-        [ExcelArgument(Name = "K",       Description = "Strike price")]           object k,
-        [ExcelArgument(Name = "H",       Description = "Barrier level")]          object h,
-        [ExcelArgument(Name = "T",       Description = "Time to expiry")]         object t,
-        [ExcelArgument(Name = "r",       Description = "Risk-free rate")]         object r,
-        [ExcelArgument(Name = "sigma",   Description = "Annualised volatility")]  object sigma,
-        [ExcelArgument(Name = "knockIn", Description = "TRUE = knock-in")]        object knockIn,
-        [ExcelArgument(Name = "isUp",    Description = "TRUE = up barrier")]      object isUp)
-        => Enabled ? ExoticOptions.BarrierPut(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(k), RangeHelper.Scalar(h),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.Scalar(sigma),
-                         RangeHelper.ScalarBool(knockIn), RangeHelper.ScalarBool(isUp))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",       Description = Arg.S)]                          object s,
+        [ExcelArgument(Name = "K",       Description = Arg.K)]                          object k,
+        [ExcelArgument(Name = "H",       Description = ExoticOptionsConstants.Barrier)] object h,
+        [ExcelArgument(Name = "T",       Description = ExoticOptionsConstants.Time)]    object t,
+        [ExcelArgument(Name = "r",       Description = ExoticOptionsConstants.RiskFree)] object r,
+        [ExcelArgument(Name = "sigma",   Description = Arg.Sigma)]                      object sigma,
+        [ExcelArgument(Name = "knockIn", Description = ExoticOptionsConstants.KnockIn)] object knockIn,
+        [ExcelArgument(Name = "isUp",    Description = ExoticOptionsConstants.IsUpShort)] object isUp)
+        => Fn.Run(Category.Options, () => ExoticOptions.BarrierPut(
+               In.Price("S", s), In.Price("K", k), In.Price("H", h),
+               In.Years("T", t), In.Rate("r", r), In.Vol("sigma", sigma),
+               In.Flag("knockIn", knockIn), In.Flag("isUp", isUp)));
 
-    [ExcelFunction(Name = "EX_ASIAN_GEO", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "European geometric Asian option (closed-form). Payoff based on geometric average of asset price. Always below arithmetic Asian price.")]
+    [ExcelFunction(Name = ExoticOptionsConstants.AsianGeoName, Category = Cat.Options, IsThreadSafe = true,
+        Description = ExoticOptionsConstants.AsianGeoDesc)]
     public static object ExAsianGeo(
-        [ExcelArgument(Name = "S",     Description = "Current asset price")]  object s,
-        [ExcelArgument(Name = "K",     Description = "Strike price")]          object k,
-        [ExcelArgument(Name = "T",     Description = "Time to expiry")]        object t,
-        [ExcelArgument(Name = "r",     Description = "Risk-free rate")]        object r,
-        [ExcelArgument(Name = "sigma", Description = "Annualised volatility")] object sigma,
-        [ExcelArgument(Name = "isPut", Description = "TRUE for put")]          object isPut)
-        => Enabled ? ExoticOptions.GeometricAsian(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(k), RangeHelper.Scalar(t),
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(sigma), RangeHelper.ScalarBool(isPut))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",     Description = Arg.S)]                        object s,
+        [ExcelArgument(Name = "K",     Description = Arg.K)]                        object k,
+        [ExcelArgument(Name = "T",     Description = ExoticOptionsConstants.Time)]  object t,
+        [ExcelArgument(Name = "r",     Description = ExoticOptionsConstants.RiskFree)] object r,
+        [ExcelArgument(Name = "sigma", Description = Arg.Sigma)]                    object sigma,
+        [ExcelArgument(Name = "isPut", Description = ExoticOptionsConstants.IsPut)] object isPut)
+        => Fn.Run(Category.Options, () => ExoticOptions.GeometricAsian(
+               In.Price("S", s), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma), In.Flag("isPut", isPut)));
 
-    [ExcelFunction(Name = "EX_ASIAN_ARITH", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Arithmetic Asian option price via Monte Carlo. Payoff on arithmetic average price (the market standard). Slower than EX_ASIAN_GEO.")]
+    [ExcelFunction(Name = ExoticOptionsConstants.AsianArithName, Category = Cat.Options, IsThreadSafe = true,
+        Description = ExoticOptionsConstants.AsianArithDesc)]
     public static object ExAsianArith(
-        [ExcelArgument(Name = "S",          Description = "Current asset price")]                    object s,
-        [ExcelArgument(Name = "K",          Description = "Strike price")]                            object k,
-        [ExcelArgument(Name = "T",          Description = "Time to expiry")]                          object t,
-        [ExcelArgument(Name = "r",          Description = "Risk-free rate")]                          object r,
-        [ExcelArgument(Name = "sigma",      Description = "Annualised volatility")]                   object sigma,
-        [ExcelArgument(Name = "monitoring", Description = "Monitoring steps (default 252 = daily)")]  object monitoring,
-        [ExcelArgument(Name = "paths",      Description = "MC paths (default 10000)")]                object paths,
-        [ExcelArgument(Name = "isPut",      Description = "TRUE for put")]                            object isPut,
-        [ExcelArgument(Name = "seed",       Description = "Random seed (default 42)")]                object seed)
-        => Enabled ? ExoticOptions.ArithmeticAsian(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(k), RangeHelper.Scalar(t),
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(sigma),
-                         RangeHelper.IsMissing(monitoring) ? 252 : RangeHelper.ScalarInt(monitoring),
-                         RangeHelper.IsMissing(paths) ? 10_000 : RangeHelper.ScalarInt(paths),
-                         RangeHelper.ScalarBool(isPut),
-                         RangeHelper.IsMissing(seed) ? 42 : RangeHelper.ScalarInt(seed))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",          Description = Arg.S)]                        object s,
+        [ExcelArgument(Name = "K",          Description = Arg.K)]                        object k,
+        [ExcelArgument(Name = "T",          Description = ExoticOptionsConstants.Time)]  object t,
+        [ExcelArgument(Name = "r",          Description = ExoticOptionsConstants.RiskFree)] object r,
+        [ExcelArgument(Name = "sigma",      Description = Arg.Sigma)]                    object sigma,
+        [ExcelArgument(Name = "monitoring", Description = ExoticOptionsConstants.Monitoring)] object monitoring,
+        [ExcelArgument(Name = "paths",      Description = ExoticOptionsConstants.Paths)]      object paths,
+        [ExcelArgument(Name = "isPut",      Description = ExoticOptionsConstants.IsPut)]      object isPut,
+        [ExcelArgument(Name = "seed",       Description = ExoticOptionsConstants.Seed)]       object seed)
+        => Fn.Run(Category.Options, () => ExoticOptions.ArithmeticAsian(
+               In.Price("S", s), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma),
+               In.PosInt("monitoring", monitoring, ExoticOptionsConstants.DefaultMonitoring),
+               In.PosInt("paths", paths, ExoticOptionsConstants.DefaultPaths),
+               In.Flag("isPut", isPut),
+               In.PosInt("seed", seed, ExoticOptionsConstants.DefaultSeed)));
 
-    [ExcelFunction(Name = "EX_LOOKBACK_CALL", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Floating-strike lookback call: payoff = S_T - min(S). Right to buy at the lowest price seen. sMin = current observed minimum (= S at inception).")]
+    [ExcelFunction(Name = ExoticOptionsConstants.LookbackCallName, Category = Cat.Options, IsThreadSafe = true,
+        Description = ExoticOptionsConstants.LookbackCallDesc)]
     public static object ExLookbackCall(
-        [ExcelArgument(Name = "S",    Description = "Current asset price")]                                     object s,
-        [ExcelArgument(Name = "sMin", Description = "Minimum asset price observed so far (= S at inception)")] object sMin,
-        [ExcelArgument(Name = "T",    Description = "Remaining time to expiry in years")]                       object t,
-        [ExcelArgument(Name = "r",    Description = "Continuous risk-free rate")]                               object r,
-        [ExcelArgument(Name = "sigma",Description = "Annualised volatility")]                                   object sigma)
-        => Enabled ? ExoticOptions.LookbackCall(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(sMin), RangeHelper.Scalar(t),
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",    Description = Arg.S)]                            object s,
+        [ExcelArgument(Name = "sMin", Description = ExoticOptionsConstants.SMin)]      object sMin,
+        [ExcelArgument(Name = "T",    Description = ExoticOptionsConstants.LookbackTime)] object t,
+        [ExcelArgument(Name = "r",    Description = Arg.R)]                            object r,
+        [ExcelArgument(Name = "sigma",Description = Arg.Sigma)]                        object sigma)
+        => Fn.Run(Category.Options, () => ExoticOptions.LookbackCall(
+               In.Price("S", s), In.Price("sMin", sMin), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "EX_LOOKBACK_PUT", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Floating-strike lookback put: payoff = max(S) - S_T. Right to sell at the highest price seen. sMax = current observed maximum (= S at inception).")]
+    [ExcelFunction(Name = ExoticOptionsConstants.LookbackPutName, Category = Cat.Options, IsThreadSafe = true,
+        Description = ExoticOptionsConstants.LookbackPutDesc)]
     public static object ExLookbackPut(
-        [ExcelArgument(Name = "S",    Description = "Current asset price")]                                     object s,
-        [ExcelArgument(Name = "sMax", Description = "Maximum asset price observed so far (= S at inception)")] object sMax,
-        [ExcelArgument(Name = "T",    Description = "Remaining time to expiry in years")]                       object t,
-        [ExcelArgument(Name = "r",    Description = "Continuous risk-free rate")]                               object r,
-        [ExcelArgument(Name = "sigma",Description = "Annualised volatility")]                                   object sigma)
-        => Enabled ? ExoticOptions.LookbackPut(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(sMax), RangeHelper.Scalar(t),
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",    Description = Arg.S)]                            object s,
+        [ExcelArgument(Name = "sMax", Description = ExoticOptionsConstants.SMax)]      object sMax,
+        [ExcelArgument(Name = "T",    Description = ExoticOptionsConstants.LookbackTime)] object t,
+        [ExcelArgument(Name = "r",    Description = Arg.R)]                            object r,
+        [ExcelArgument(Name = "sigma",Description = Arg.Sigma)]                        object sigma)
+        => Fn.Run(Category.Options, () => ExoticOptions.LookbackPut(
+               In.Price("S", s), In.Price("sMax", sMax), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma)));
 }

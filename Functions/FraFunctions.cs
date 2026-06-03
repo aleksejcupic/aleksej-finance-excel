@@ -1,85 +1,77 @@
 using ExcelDna.Integration;
-using AleksejCupic.FinancialMath.Derivatives;
+using Aleksej.Finance.Derivatives;
+using Aleksej.Finance.Excel.Constants;
 using Aleksej.Finance.Excel.Helpers;
-using Aleksej.Finance.Excel.Settings;
 
 namespace Aleksej.Finance.Excel.Functions;
 
 /// <summary>Forward Rate Agreement (FRA) pricing and settlement (Hull Ch. 4).</summary>
 public static class FraFunctions
 {
-    private static bool Enabled => UserSettings.Load().EnableDerivatives;
-    private static string Off   => RangeHelper.DisabledMessage("Derivatives");
-
-    [ExcelFunction(Name = "FRA_RATE", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Continuously compounded forward rate for [t1, t2] from zero rates. f = (r2*t2 - r1*t1)/(t2-t1).")]
+    [ExcelFunction(Name = FraConstants.RateName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = FraConstants.RateDesc, HelpTopic = FraConstants.Help)]
     public static object FraRate(
-        [ExcelArgument(Name = "r1", Description = "Zero rate to t1 (continuous)")] object r1,
-        [ExcelArgument(Name = "t1", Description = "Start of forward period (years)")] object t1,
-        [ExcelArgument(Name = "r2", Description = "Zero rate to t2 (continuous)")] object r2,
-        [ExcelArgument(Name = "t2", Description = "End of forward period (years)")] object t2)
-        => Enabled ? ForwardRateAgreement.ForwardRate(
-                         RangeHelper.Scalar(r1), RangeHelper.Scalar(t1), RangeHelper.Scalar(r2), RangeHelper.Scalar(t2))
-                   : (object)Off;
+        [ExcelArgument(Name = "r1", Description = FraConstants.R1Cont)]  object r1,
+        [ExcelArgument(Name = "t1", Description = FraConstants.T1Start)] object t1,
+        [ExcelArgument(Name = "r2", Description = FraConstants.R2Cont)]  object r2,
+        [ExcelArgument(Name = "t2", Description = FraConstants.T2End)]   object t2)
+        => Fn.Run(Category.Derivatives, () => ForwardRateAgreement.ForwardRate(
+               In.Rate("r1", r1), In.Years("t1", t1), In.Rate("r2", r2), In.Years("t2", t2)));
 
-    [ExcelFunction(Name = "FRA_RATE_SIMPLE", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Simply compounded (LIBOR/SOFR style) forward rate for [t1, t2]. R_F = (exp(f*(t2-t1)) - 1)/(t2-t1).")]
+    [ExcelFunction(Name = FraConstants.RateSimpleName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = FraConstants.RateSimpleDesc, HelpTopic = FraConstants.Help)]
     public static object FraRateSimple(
-        [ExcelArgument(Name = "r1", Description = "Zero rate to t1")] object r1,
-        [ExcelArgument(Name = "t1", Description = "Start of forward period")] object t1,
-        [ExcelArgument(Name = "r2", Description = "Zero rate to t2")] object r2,
-        [ExcelArgument(Name = "t2", Description = "End of forward period")] object t2)
-        => Enabled ? ForwardRateAgreement.ForwardRateSimple(
-                         RangeHelper.Scalar(r1), RangeHelper.Scalar(t1), RangeHelper.Scalar(r2), RangeHelper.Scalar(t2))
-                   : (object)Off;
+        [ExcelArgument(Name = "r1", Description = FraConstants.R1)]           object r1,
+        [ExcelArgument(Name = "t1", Description = FraConstants.T1StartShort)] object t1,
+        [ExcelArgument(Name = "r2", Description = FraConstants.R2)]           object r2,
+        [ExcelArgument(Name = "t2", Description = FraConstants.T2EndShort)]   object t2)
+        => Fn.Run(Category.Derivatives, () => ForwardRateAgreement.ForwardRateSimple(
+               In.Rate("r1", r1), In.Years("t1", t1), In.Rate("r2", r2), In.Years("t2", t2)));
 
-    [ExcelFunction(Name = "FRA_VALUE", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Present value of an FRA. Long receives R_K (FRA rate) and pays market forward rate. V = L*(R_K - R_F)*delta*exp(-r2*t2).")]
+    [ExcelFunction(Name = FraConstants.ValueName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = FraConstants.ValueDesc, HelpTopic = FraConstants.Help)]
     public static object FraValue(
-        [ExcelArgument(Name = "notional", Description = "Notional principal")]                  object notional,
-        [ExcelArgument(Name = "fraRate",  Description = "Agreed FRA rate R_K (simply compounded)")] object fraRate,
-        [ExcelArgument(Name = "r1",       Description = "Current zero rate to t1")]             object r1,
-        [ExcelArgument(Name = "t1",       Description = "Start of accrual period (years)")]     object t1,
-        [ExcelArgument(Name = "r2",       Description = "Current zero rate to t2")]             object r2,
-        [ExcelArgument(Name = "t2",       Description = "End of accrual period (years)")]       object t2,
-        [ExcelArgument(Name = "isLong",   Description = "TRUE = long (receive fixed R_K), FALSE = short")] object isLong)
-        => Enabled ? ForwardRateAgreement.FraValue(
-                         RangeHelper.Scalar(notional), RangeHelper.Scalar(fraRate),
-                         RangeHelper.Scalar(r1), RangeHelper.Scalar(t1),
-                         RangeHelper.Scalar(r2), RangeHelper.Scalar(t2),
-                         RangeHelper.IsMissing(isLong) ? true : RangeHelper.ScalarBool(isLong))
-                   : (object)Off;
+        [ExcelArgument(Name = "notional", Description = FraConstants.Notional)]  object notional,
+        [ExcelArgument(Name = "fraRate",  Description = FraConstants.FraRateK)]  object fraRate,
+        [ExcelArgument(Name = "r1",       Description = FraConstants.R1Current)] object r1,
+        [ExcelArgument(Name = "t1",       Description = FraConstants.T1Accrual)] object t1,
+        [ExcelArgument(Name = "r2",       Description = FraConstants.R2Current)] object r2,
+        [ExcelArgument(Name = "t2",       Description = FraConstants.T2Accrual)] object t2,
+        [ExcelArgument(Name = "isLong",   Description = FraConstants.IsLong)]    object isLong)
+        => Fn.Run(Category.Derivatives, () => ForwardRateAgreement.FraValue(
+               In.Price("notional", notional), In.Rate("fraRate", fraRate),
+               In.Rate("r1", r1), In.Years("t1", t1),
+               In.Rate("r2", r2), In.Years("t2", t2),
+               In.Flag("isLong", isLong, FraConstants.IsLongDefault)));
 
-    [ExcelFunction(Name = "FRA_SETTLEMENT", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "FRA settlement cash flow at t1. Settlement = L*(R_K - R_M)*delta / (1 + R_M*delta). Positive = long profits.")]
+    [ExcelFunction(Name = FraConstants.SettlementName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = FraConstants.SettlementDesc, HelpTopic = FraConstants.Help)]
     public static object FraSettlement(
-        [ExcelArgument(Name = "notional",   Description = "Notional principal")]                    object notional,
-        [ExcelArgument(Name = "fraRate",    Description = "Agreed FRA rate R_K (simply compounded)")] object fraRate,
-        [ExcelArgument(Name = "marketRate", Description = "Realised market rate R_M at settlement")] object marketRate,
-        [ExcelArgument(Name = "t1",         Description = "Start of accrual period")]               object t1,
-        [ExcelArgument(Name = "t2",         Description = "End of accrual period")]                 object t2,
-        [ExcelArgument(Name = "isLong",     Description = "TRUE = long FRA")]                       object isLong)
-        => Enabled ? ForwardRateAgreement.FraSettlement(
-                         RangeHelper.Scalar(notional), RangeHelper.Scalar(fraRate),
-                         RangeHelper.Scalar(marketRate),
-                         RangeHelper.Scalar(t1), RangeHelper.Scalar(t2),
-                         RangeHelper.IsMissing(isLong) ? true : RangeHelper.ScalarBool(isLong))
-                   : (object)Off;
+        [ExcelArgument(Name = "notional",   Description = FraConstants.Notional)]       object notional,
+        [ExcelArgument(Name = "fraRate",    Description = FraConstants.FraRateK)]       object fraRate,
+        [ExcelArgument(Name = "marketRate", Description = FraConstants.MarketRate)]     object marketRate,
+        [ExcelArgument(Name = "t1",         Description = FraConstants.T1AccrualShort)] object t1,
+        [ExcelArgument(Name = "t2",         Description = FraConstants.T2AccrualShort)] object t2,
+        [ExcelArgument(Name = "isLong",     Description = FraConstants.IsLongShort)]    object isLong)
+        => Fn.Run(Category.Derivatives, () => ForwardRateAgreement.FraSettlement(
+               In.Price("notional", notional), In.Rate("fraRate", fraRate),
+               In.Rate("marketRate", marketRate),
+               In.Years("t1", t1), In.Years("t2", t2),
+               In.Flag("isLong", isLong, FraConstants.IsLongDefault)));
 
-    [ExcelFunction(Name = "FRA_DV01", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "FRA DV01 — change in value for a 1bp parallel shift in zero rates.")]
+    [ExcelFunction(Name = FraConstants.Dv01Name, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = FraConstants.Dv01Desc, HelpTopic = FraConstants.Help)]
     public static object FraDv01(
-        [ExcelArgument(Name = "notional", Description = "Notional principal")]           object notional,
-        [ExcelArgument(Name = "fraRate",  Description = "Agreed FRA rate")]              object fraRate,
-        [ExcelArgument(Name = "r1",       Description = "Zero rate to t1")]              object r1,
-        [ExcelArgument(Name = "t1",       Description = "Start of accrual period")]      object t1,
-        [ExcelArgument(Name = "r2",       Description = "Zero rate to t2")]              object r2,
-        [ExcelArgument(Name = "t2",       Description = "End of accrual period")]        object t2,
-        [ExcelArgument(Name = "isLong",   Description = "TRUE = long FRA")]              object isLong)
-        => Enabled ? ForwardRateAgreement.DV01(
-                         RangeHelper.Scalar(notional), RangeHelper.Scalar(fraRate),
-                         RangeHelper.Scalar(r1), RangeHelper.Scalar(t1),
-                         RangeHelper.Scalar(r2), RangeHelper.Scalar(t2),
-                         RangeHelper.IsMissing(isLong) ? true : RangeHelper.ScalarBool(isLong))
-                   : (object)Off;
+        [ExcelArgument(Name = "notional", Description = FraConstants.Notional)]       object notional,
+        [ExcelArgument(Name = "fraRate",  Description = FraConstants.FraRateAgreed)]  object fraRate,
+        [ExcelArgument(Name = "r1",       Description = FraConstants.R1)]             object r1,
+        [ExcelArgument(Name = "t1",       Description = FraConstants.T1AccrualShort)] object t1,
+        [ExcelArgument(Name = "r2",       Description = FraConstants.R2)]             object r2,
+        [ExcelArgument(Name = "t2",       Description = FraConstants.T2AccrualShort)] object t2,
+        [ExcelArgument(Name = "isLong",   Description = FraConstants.IsLongShort)]    object isLong)
+        => Fn.Run(Category.Derivatives, () => ForwardRateAgreement.DV01(
+               In.Price("notional", notional), In.Rate("fraRate", fraRate),
+               In.Rate("r1", r1), In.Years("t1", t1),
+               In.Rate("r2", r2), In.Years("t2", t2),
+               In.Flag("isLong", isLong, FraConstants.IsLongDefault)));
 }

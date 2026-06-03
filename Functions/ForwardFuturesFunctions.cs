@@ -1,100 +1,90 @@
 using ExcelDna.Integration;
-using AleksejCupic.FinancialMath.Derivatives;
+using Aleksej.Finance.Derivatives;
+using Aleksej.Finance.Excel.Constants;
 using Aleksej.Finance.Excel.Helpers;
-using Aleksej.Finance.Excel.Settings;
 
 namespace Aleksej.Finance.Excel.Functions;
 
 /// <summary>Forward and futures pricing via the cost-of-carry model (Hull Ch. 5-6).</summary>
 public static class ForwardFuturesFunctions
 {
-    private static bool Enabled => UserSettings.Load().EnableDerivatives;
-    private static string Off   => RangeHelper.DisabledMessage("Derivatives");
-
-    [ExcelFunction(Name = "FWD_PRICE", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Forward price on an asset with no income. F = S * exp(r * T).")]
+    [ExcelFunction(Name = ForwardFuturesConstants.PriceName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ForwardFuturesConstants.PriceDesc, HelpTopic = ForwardFuturesConstants.Help)]
     public static object FwdPrice(
-        [ExcelArgument(Name = "S", Description = "Current spot price")]              object s,
-        [ExcelArgument(Name = "r", Description = "Continuous risk-free rate")]       object r,
-        [ExcelArgument(Name = "T", Description = "Time to delivery in years")]       object t)
-        => Enabled ? ForwardFutures.ForwardPrice(RangeHelper.Scalar(s), RangeHelper.Scalar(r), RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "S", Description = ForwardFuturesConstants.Spot)]        object s,
+        [ExcelArgument(Name = "r", Description = ForwardFuturesConstants.RContinuous)] object r,
+        [ExcelArgument(Name = "T", Description = ForwardFuturesConstants.TDelivery)]   object t)
+        => Fn.Run(Category.Derivatives, () => ForwardFutures.ForwardPrice(
+               In.Price("S", s), In.Rate("r", r), In.Years("T", t)));
 
-    [ExcelFunction(Name = "FWD_PRICE_YIELD", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Forward price with continuous dividend yield q. F = S * exp((r - q) * T).")]
+    [ExcelFunction(Name = ForwardFuturesConstants.PriceYieldName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ForwardFuturesConstants.PriceYieldDesc, HelpTopic = ForwardFuturesConstants.Help)]
     public static object FwdPriceYield(
-        [ExcelArgument(Name = "S", Description = "Current spot price")]              object s,
-        [ExcelArgument(Name = "r", Description = "Continuous risk-free rate")]       object r,
-        [ExcelArgument(Name = "q", Description = "Continuous dividend yield")]       object q,
-        [ExcelArgument(Name = "T", Description = "Time to delivery in years")]       object t)
-        => Enabled ? ForwardFutures.ForwardPriceWithYield(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(r), RangeHelper.Scalar(q), RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "S", Description = ForwardFuturesConstants.Spot)]          object s,
+        [ExcelArgument(Name = "r", Description = ForwardFuturesConstants.RContinuous)]   object r,
+        [ExcelArgument(Name = "q", Description = ForwardFuturesConstants.DividendYield)] object q,
+        [ExcelArgument(Name = "T", Description = ForwardFuturesConstants.TDelivery)]     object t)
+        => Fn.Run(Category.Derivatives, () => ForwardFutures.ForwardPriceWithYield(
+               In.Price("S", s), In.Rate("r", r), In.Rate("q", q), In.Years("T", t)));
 
-    [ExcelFunction(Name = "FWD_PRICE_INCOME", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Forward price with known discrete income (PV). F = (S - I) * exp(r * T). Use FWD_PV_INCOME to compute I.")]
+    [ExcelFunction(Name = ForwardFuturesConstants.PriceIncomeName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ForwardFuturesConstants.PriceIncomeDesc, HelpTopic = ForwardFuturesConstants.Help)]
     public static object FwdPriceIncome(
-        [ExcelArgument(Name = "S",        Description = "Current spot price")]          object s,
-        [ExcelArgument(Name = "incomesPV", Description = "Present value of income I")]  object incomesPv,
-        [ExcelArgument(Name = "r",        Description = "Continuous risk-free rate")]   object r,
-        [ExcelArgument(Name = "T",        Description = "Time to delivery")]            object t)
-        => Enabled ? ForwardFutures.ForwardPriceWithIncome(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(incomesPv), RangeHelper.Scalar(r), RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",         Description = ForwardFuturesConstants.Spot)]            object s,
+        [ExcelArgument(Name = "incomesPV", Description = ForwardFuturesConstants.IncomesPv)]       object incomesPv,
+        [ExcelArgument(Name = "r",         Description = ForwardFuturesConstants.RContinuous)]     object r,
+        [ExcelArgument(Name = "T",         Description = ForwardFuturesConstants.TDeliveryShort)]  object t)
+        => Fn.Run(Category.Derivatives, () => ForwardFutures.ForwardPriceWithIncome(
+               In.Price("S", s), In.Num("incomesPV", incomesPv), In.Rate("r", r), In.Years("T", t)));
 
-    [ExcelFunction(Name = "FWD_FX", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "FX forward price via covered interest rate parity. F = S * exp((r - rf) * T).")]
+    [ExcelFunction(Name = ForwardFuturesConstants.FxName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ForwardFuturesConstants.FxDesc, HelpTopic = ForwardFuturesConstants.Help)]
     public static object FwdFx(
-        [ExcelArgument(Name = "S",  Description = "Spot rate (domestic per foreign)")]  object s,
-        [ExcelArgument(Name = "r",  Description = "Domestic risk-free rate")]           object r,
-        [ExcelArgument(Name = "rf", Description = "Foreign risk-free rate")]            object rf,
-        [ExcelArgument(Name = "T",  Description = "Time to delivery")]                  object t)
-        => Enabled ? ForwardFutures.FxForwardPrice(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(r), RangeHelper.Scalar(rf), RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",  Description = ForwardFuturesConstants.FxSpot)]         object s,
+        [ExcelArgument(Name = "r",  Description = ForwardFuturesConstants.RDomestic)]      object r,
+        [ExcelArgument(Name = "rf", Description = ForwardFuturesConstants.RForeign)]       object rf,
+        [ExcelArgument(Name = "T",  Description = ForwardFuturesConstants.TDeliveryShort)] object t)
+        => Fn.Run(Category.Derivatives, () => ForwardFutures.FxForwardPrice(
+               In.Price("S", s), In.Rate("r", r), In.Rate("rf", rf), In.Years("T", t)));
 
-    [ExcelFunction(Name = "FWD_COMMODITY", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Commodity forward price via cost-of-carry. F = S * exp((r + u - y) * T) where u = storage cost, y = convenience yield.")]
+    [ExcelFunction(Name = ForwardFuturesConstants.CommodityName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ForwardFuturesConstants.CommodityDesc, HelpTopic = ForwardFuturesConstants.Help)]
     public static object FwdCommodity(
-        [ExcelArgument(Name = "S",              Description = "Current spot price")]                  object s,
-        [ExcelArgument(Name = "r",              Description = "Risk-free rate")]                      object r,
-        [ExcelArgument(Name = "storageCost",    Description = "Annual storage cost rate")]             object storageCost,
-        [ExcelArgument(Name = "convenienceYield",Description = "Annual convenience yield")]            object convYield,
-        [ExcelArgument(Name = "T",              Description = "Time to delivery")]                    object t)
-        => Enabled ? ForwardFutures.ForwardPriceCommodity(
-                         RangeHelper.Scalar(s), RangeHelper.Scalar(r), RangeHelper.Scalar(storageCost),
-                         RangeHelper.Scalar(convYield), RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "S",               Description = ForwardFuturesConstants.Spot)]             object s,
+        [ExcelArgument(Name = "r",               Description = ForwardFuturesConstants.RiskFree)]         object r,
+        [ExcelArgument(Name = "storageCost",     Description = ForwardFuturesConstants.StorageCost)]      object storageCost,
+        [ExcelArgument(Name = "convenienceYield",Description = ForwardFuturesConstants.ConvenienceYield)] object convYield,
+        [ExcelArgument(Name = "T",               Description = ForwardFuturesConstants.TDeliveryShort)]   object t)
+        => Fn.Run(Category.Derivatives, () => ForwardFutures.ForwardPriceCommodity(
+               In.Price("S", s), In.Rate("r", r), In.Rate("storageCost", storageCost),
+               In.Rate("convenienceYield", convYield), In.Years("T", t)));
 
-    [ExcelFunction(Name = "FWD_VALUE", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Current value of an existing long forward position. f = (F - K) * exp(-r * T).")]
+    [ExcelFunction(Name = ForwardFuturesConstants.ValueName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ForwardFuturesConstants.ValueDesc, HelpTopic = ForwardFuturesConstants.Help)]
     public static object FwdValue(
-        [ExcelArgument(Name = "F", Description = "Current fair forward price (use FWD_PRICE*)")] object f,
-        [ExcelArgument(Name = "K", Description = "Delivery price agreed at inception")]          object k,
-        [ExcelArgument(Name = "r", Description = "Continuous risk-free rate")]                   object r,
-        [ExcelArgument(Name = "T", Description = "Remaining time to delivery")]                  object t)
-        => Enabled ? ForwardFutures.ForwardValue(
-                         RangeHelper.Scalar(f), RangeHelper.Scalar(k), RangeHelper.Scalar(r), RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "F", Description = ForwardFuturesConstants.FairForward)]   object f,
+        [ExcelArgument(Name = "K", Description = ForwardFuturesConstants.DeliveryPrice)] object k,
+        [ExcelArgument(Name = "r", Description = ForwardFuturesConstants.RContinuous)]   object r,
+        [ExcelArgument(Name = "T", Description = ForwardFuturesConstants.TRemaining)]    object t)
+        => Fn.Run(Category.Derivatives, () => ForwardFutures.ForwardValue(
+               In.Price("F", f), In.Price("K", k), In.Rate("r", r), In.Years("T", t)));
 
-    [ExcelFunction(Name = "FWD_VALUE_SHORT", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Current value of an existing short forward position. f = (K - F) * exp(-r * T).")]
+    [ExcelFunction(Name = ForwardFuturesConstants.ValueShortName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ForwardFuturesConstants.ValueShortDesc, HelpTopic = ForwardFuturesConstants.Help)]
     public static object FwdValueShort(
-        [ExcelArgument(Name = "F", Description = "Current fair forward price")] object f,
-        [ExcelArgument(Name = "K", Description = "Delivery price")]             object k,
-        [ExcelArgument(Name = "r", Description = "Risk-free rate")]             object r,
-        [ExcelArgument(Name = "T", Description = "Remaining time to delivery")] object t)
-        => Enabled ? ForwardFutures.ForwardValueShort(
-                         RangeHelper.Scalar(f), RangeHelper.Scalar(k), RangeHelper.Scalar(r), RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "F", Description = ForwardFuturesConstants.FairForwardShort)]   object f,
+        [ExcelArgument(Name = "K", Description = ForwardFuturesConstants.DeliveryPriceShort)] object k,
+        [ExcelArgument(Name = "r", Description = ForwardFuturesConstants.RiskFree)]           object r,
+        [ExcelArgument(Name = "T", Description = ForwardFuturesConstants.TRemaining)]         object t)
+        => Fn.Run(Category.Derivatives, () => ForwardFutures.ForwardValueShort(
+               In.Price("F", f), In.Price("K", k), In.Rate("r", r), In.Years("T", t)));
 
-    [ExcelFunction(Name = "FWD_PV_INCOME", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Present value of discrete cash flows: I = sum(CF_i * exp(-r * t_i)). Use as input to FWD_PRICE_INCOME.")]
+    [ExcelFunction(Name = ForwardFuturesConstants.PvIncomeName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ForwardFuturesConstants.PvIncomeDesc, HelpTopic = ForwardFuturesConstants.Help)]
     public static object FwdPvIncome(
-        [ExcelArgument(Name = "cashFlows", Description = "Cash flow amounts (range)")] object cashFlows,
-        [ExcelArgument(Name = "times",     Description = "Cash flow times in years (range)")] object times,
-        [ExcelArgument(Name = "r",         Description = "Continuous discount rate")]  object r)
-        => Enabled ? ForwardFutures.PresentValueOfIncome(
-                         RangeHelper.ToDoubleArray(cashFlows), RangeHelper.ToDoubleArray(times), RangeHelper.Scalar(r))
-                   : (object)Off;
+        [ExcelArgument(Name = "cashFlows", Description = ForwardFuturesConstants.CashFlows)] object cashFlows,
+        [ExcelArgument(Name = "times",     Description = ForwardFuturesConstants.Times)]     object times,
+        [ExcelArgument(Name = "r",         Description = ForwardFuturesConstants.RDiscount)] object r)
+        => Fn.Run(Category.Derivatives, () => ForwardFutures.PresentValueOfIncome(
+               In.Vector("cashFlows", cashFlows), In.Vector("times", times), In.Rate("r", r)));
 }

@@ -1,102 +1,96 @@
 using ExcelDna.Integration;
-using AleksejCupic.FinancialMath.Options;
+using Aleksej.Finance.Options;
+using Aleksej.Finance.Excel.Constants;
 using Aleksej.Finance.Excel.Helpers;
-using Aleksej.Finance.Excel.Settings;
 
 namespace Aleksej.Finance.Excel.Functions;
 
 /// <summary>Options on futures priced via Black's (1976) model.</summary>
 public static class OptionsOnFuturesFunctions
 {
-    private static bool Enabled => UserSettings.Load().EnableOptions;
-    private static string Off   => RangeHelper.DisabledMessage("Options");
-
-    [ExcelFunction(Name = "OF_CALL", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "European call on a futures contract (Black 1976). C = exp(-rT)*[F*N(d1) - K*N(d2)]. Uses futures price F, not spot S.",
-        HelpTopic = "https://aleksejcupic.github.io/financial-math/options/options-on-futures")]
+    [ExcelFunction(Name = OptionsOnFuturesConstants.CallName, Category = Cat.Options, IsThreadSafe = true,
+        Description = OptionsOnFuturesConstants.CallDesc, HelpTopic = OptionsOnFuturesConstants.Help)]
     public static object OfCall(
-        [ExcelArgument(Name = "F",     Description = "Current futures price")]      object f,
-        [ExcelArgument(Name = "K",     Description = "Strike price")]               object k,
-        [ExcelArgument(Name = "T",     Description = "Time to option expiry")]      object t,
-        [ExcelArgument(Name = "r",     Description = "Continuous risk-free rate")]  object r,
-        [ExcelArgument(Name = "sigma", Description = "Annualised futures price vol")] object sigma)
-        => Enabled ? OptionsOnFutures.Call(RangeHelper.Scalar(f), RangeHelper.Scalar(k),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "F",     Description = OptionsOnFuturesConstants.Futures)]      object f,
+        [ExcelArgument(Name = "K",     Description = Arg.K)]                                  object k,
+        [ExcelArgument(Name = "T",     Description = OptionsOnFuturesConstants.OptionExpiry)] object t,
+        [ExcelArgument(Name = "r",     Description = Arg.R)]                                  object r,
+        [ExcelArgument(Name = "sigma", Description = OptionsOnFuturesConstants.FuturesVol)]   object sigma)
+        => Fn.Run(Category.Options, () => OptionsOnFutures.Call(
+               In.Price("F", f), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "OF_PUT", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "European put on a futures contract (Black 1976). P = exp(-rT)*[K*N(-d2) - F*N(-d1)].")]
+    [ExcelFunction(Name = OptionsOnFuturesConstants.PutName, Category = Cat.Options, IsThreadSafe = true,
+        Description = OptionsOnFuturesConstants.PutDesc)]
     public static object OfPut(
-        [ExcelArgument(Name = "F",     Description = "Current futures price")]      object f,
-        [ExcelArgument(Name = "K",     Description = "Strike price")]               object k,
-        [ExcelArgument(Name = "T",     Description = "Time to option expiry")]      object t,
-        [ExcelArgument(Name = "r",     Description = "Continuous risk-free rate")]  object r,
-        [ExcelArgument(Name = "sigma", Description = "Annualised futures vol")]     object sigma)
-        => Enabled ? OptionsOnFutures.Put(RangeHelper.Scalar(f), RangeHelper.Scalar(k),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "F",     Description = OptionsOnFuturesConstants.Futures)]      object f,
+        [ExcelArgument(Name = "K",     Description = Arg.K)]                                  object k,
+        [ExcelArgument(Name = "T",     Description = OptionsOnFuturesConstants.OptionExpiry)] object t,
+        [ExcelArgument(Name = "r",     Description = Arg.R)]                                  object r,
+        [ExcelArgument(Name = "sigma", Description = OptionsOnFuturesConstants.FuturesVolShort)] object sigma)
+        => Fn.Run(Category.Options, () => OptionsOnFutures.Put(
+               In.Price("F", f), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "OF_CALL_FROM_PUT", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Futures call price derived from put via put-call parity. C = P + exp(-rT)*(F-K).")]
+    [ExcelFunction(Name = OptionsOnFuturesConstants.CallFromPutName, Category = Cat.Options, IsThreadSafe = true,
+        Description = OptionsOnFuturesConstants.CallFromPutDesc)]
     public static object OfCallFromPut(
-        [ExcelArgument(Name = "putPrice", Description = "Known put price")]        object putPrice,
-        [ExcelArgument(Name = "F",        Description = "Futures price")]          object f,
-        [ExcelArgument(Name = "K",        Description = "Strike")]                 object k,
-        [ExcelArgument(Name = "T",        Description = "Time to expiry")]         object t,
-        [ExcelArgument(Name = "r",        Description = "Risk-free rate")]         object r)
-        => Enabled ? OptionsOnFutures.CallFromPut(RangeHelper.Scalar(putPrice), RangeHelper.Scalar(f),
-                         RangeHelper.Scalar(k), RangeHelper.Scalar(t), RangeHelper.Scalar(r))
-                   : (object)Off;
+        [ExcelArgument(Name = "putPrice", Description = OptionsOnFuturesConstants.PutPrice)]     object putPrice,
+        [ExcelArgument(Name = "F",        Description = OptionsOnFuturesConstants.FuturesShort)] object f,
+        [ExcelArgument(Name = "K",        Description = OptionsOnFuturesConstants.Strike)]       object k,
+        [ExcelArgument(Name = "T",        Description = OptionsOnFuturesConstants.Time)]         object t,
+        [ExcelArgument(Name = "r",        Description = OptionsOnFuturesConstants.RiskFree)]     object r)
+        => Fn.Run(Category.Options, () => OptionsOnFutures.CallFromPut(
+               In.Price("putPrice", putPrice), In.Price("F", f),
+               In.Price("K", k), In.Years("T", t), In.Rate("r", r)));
 
-    [ExcelFunction(Name = "OF_DELTA", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Futures option Delta (dV/dF). Call: exp(-rT)*N(d1). Put: exp(-rT)*(N(d1)-1).")]
+    [ExcelFunction(Name = OptionsOnFuturesConstants.DeltaName, Category = Cat.Options, IsThreadSafe = true,
+        Description = OptionsOnFuturesConstants.DeltaDesc)]
     public static object OfDelta(
-        [ExcelArgument(Name = "F",     Description = "Current futures price")]     object f,
-        [ExcelArgument(Name = "K",     Description = "Strike")]                    object k,
-        [ExcelArgument(Name = "T",     Description = "Time to expiry")]            object t,
-        [ExcelArgument(Name = "r",     Description = "Risk-free rate")]            object r,
-        [ExcelArgument(Name = "sigma", Description = "Annualised vol")]            object sigma,
-        [ExcelArgument(Name = "isPut", Description = "TRUE for put")]              object isPut)
-        => Enabled ? OptionsOnFutures.Delta(RangeHelper.Scalar(f), RangeHelper.Scalar(k),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.Scalar(sigma),
-                         RangeHelper.ScalarBool(isPut))
-                   : (object)Off;
+        [ExcelArgument(Name = "F",     Description = OptionsOnFuturesConstants.Futures)]  object f,
+        [ExcelArgument(Name = "K",     Description = OptionsOnFuturesConstants.Strike)]   object k,
+        [ExcelArgument(Name = "T",     Description = OptionsOnFuturesConstants.Time)]     object t,
+        [ExcelArgument(Name = "r",     Description = OptionsOnFuturesConstants.RiskFree)] object r,
+        [ExcelArgument(Name = "sigma", Description = OptionsOnFuturesConstants.Vol)]      object sigma,
+        [ExcelArgument(Name = "isPut", Description = OptionsOnFuturesConstants.IsPut)]    object isPut)
+        => Fn.Run(Category.Options, () => OptionsOnFutures.Delta(
+               In.Price("F", f), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma), In.Flag("isPut", isPut)));
 
-    [ExcelFunction(Name = "OF_GAMMA", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Futures option Gamma (d²V/dF²). Same for puts and calls.")]
+    [ExcelFunction(Name = OptionsOnFuturesConstants.GammaName, Category = Cat.Options, IsThreadSafe = true,
+        Description = OptionsOnFuturesConstants.GammaDesc)]
     public static object OfGamma(
-        [ExcelArgument(Name = "F",     Description = "Current futures price")] object f,
-        [ExcelArgument(Name = "K",     Description = "Strike")] object k,
-        [ExcelArgument(Name = "T",     Description = "Time to expiry")] object t,
-        [ExcelArgument(Name = "r",     Description = "Risk-free rate")] object r,
-        [ExcelArgument(Name = "sigma", Description = "Annualised vol")] object sigma)
-        => Enabled ? OptionsOnFutures.Gamma(RangeHelper.Scalar(f), RangeHelper.Scalar(k),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "F",     Description = OptionsOnFuturesConstants.Futures)]  object f,
+        [ExcelArgument(Name = "K",     Description = OptionsOnFuturesConstants.Strike)]   object k,
+        [ExcelArgument(Name = "T",     Description = OptionsOnFuturesConstants.Time)]     object t,
+        [ExcelArgument(Name = "r",     Description = OptionsOnFuturesConstants.RiskFree)] object r,
+        [ExcelArgument(Name = "sigma", Description = OptionsOnFuturesConstants.Vol)]      object sigma)
+        => Fn.Run(Category.Options, () => OptionsOnFutures.Gamma(
+               In.Price("F", f), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "OF_VEGA", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Futures option Vega (dV/dσ per 1% vol move). Same for puts and calls.")]
+    [ExcelFunction(Name = OptionsOnFuturesConstants.VegaName, Category = Cat.Options, IsThreadSafe = true,
+        Description = OptionsOnFuturesConstants.VegaDesc)]
     public static object OfVega(
-        [ExcelArgument(Name = "F",     Description = "Current futures price")] object f,
-        [ExcelArgument(Name = "K",     Description = "Strike")] object k,
-        [ExcelArgument(Name = "T",     Description = "Time to expiry")] object t,
-        [ExcelArgument(Name = "r",     Description = "Risk-free rate")] object r,
-        [ExcelArgument(Name = "sigma", Description = "Annualised vol")] object sigma)
-        => Enabled ? OptionsOnFutures.Vega(RangeHelper.Scalar(f), RangeHelper.Scalar(k),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "F",     Description = OptionsOnFuturesConstants.Futures)]  object f,
+        [ExcelArgument(Name = "K",     Description = OptionsOnFuturesConstants.Strike)]   object k,
+        [ExcelArgument(Name = "T",     Description = OptionsOnFuturesConstants.Time)]     object t,
+        [ExcelArgument(Name = "r",     Description = OptionsOnFuturesConstants.RiskFree)] object r,
+        [ExcelArgument(Name = "sigma", Description = OptionsOnFuturesConstants.Vol)]      object sigma)
+        => Fn.Run(Category.Options, () => OptionsOnFutures.Vega(
+               In.Price("F", f), In.Price("K", k), In.Years("T", t),
+               In.Rate("r", r), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "OF_IV", Category = "Finance | Options", IsThreadSafe = true,
-        Description = "Futures option implied volatility from a market price. Returns #NUM if no solution.")]
+    [ExcelFunction(Name = OptionsOnFuturesConstants.IvName, Category = Cat.Options, IsThreadSafe = true,
+        Description = OptionsOnFuturesConstants.IvDesc)]
     public static object OfIv(
-        [ExcelArgument(Name = "marketPrice", Description = "Observed market price")] object marketPrice,
-        [ExcelArgument(Name = "F",           Description = "Futures price")]          object f,
-        [ExcelArgument(Name = "K",           Description = "Strike")]                 object k,
-        [ExcelArgument(Name = "T",           Description = "Time to expiry")]         object t,
-        [ExcelArgument(Name = "r",           Description = "Risk-free rate")]         object r,
-        [ExcelArgument(Name = "isPut",       Description = "TRUE for put")]           object isPut)
-        => Enabled ? OptionsOnFutures.ImpliedVolatility(
-                         RangeHelper.Scalar(marketPrice), RangeHelper.Scalar(f), RangeHelper.Scalar(k),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.ScalarBool(isPut))
-                   : (object)Off;
+        [ExcelArgument(Name = "marketPrice", Description = OptionsOnFuturesConstants.MarketPrice)]  object marketPrice,
+        [ExcelArgument(Name = "F",           Description = OptionsOnFuturesConstants.FuturesShort)] object f,
+        [ExcelArgument(Name = "K",           Description = OptionsOnFuturesConstants.Strike)]       object k,
+        [ExcelArgument(Name = "T",           Description = OptionsOnFuturesConstants.Time)]         object t,
+        [ExcelArgument(Name = "r",           Description = OptionsOnFuturesConstants.RiskFree)]     object r,
+        [ExcelArgument(Name = "isPut",       Description = OptionsOnFuturesConstants.IsPut)]        object isPut)
+        => Fn.Run(Category.Options, () => OptionsOnFutures.ImpliedVolatility(
+               In.Price("marketPrice", marketPrice), In.Price("F", f), In.Price("K", k),
+               In.Years("T", t), In.Rate("r", r), In.Flag("isPut", isPut)));
 }

@@ -1,5 +1,6 @@
 using ExcelDna.Integration;
-using AleksejCupic.FinancialMath.Bonds;
+using Aleksej.Finance.Bonds;
+using Aleksej.Finance.Excel.Constants;
 using Aleksej.Finance.Excel.Helpers;
 using Aleksej.Finance.Excel.Settings;
 
@@ -8,215 +9,208 @@ namespace Aleksej.Finance.Excel.Functions;
 /// <summary>Fixed-income functions: bond math, yield curve, and mortgage calculations.</summary>
 public static class BondFunctions
 {
-    private static bool Enabled => UserSettings.Load().EnableBonds;
-    private static string Off   => RangeHelper.DisabledMessage("Bonds");
-    private static int Freq     => UserSettings.Load().DefaultFrequency;
-
     // ── BondMath ──────────────────────────────────────────────────────────────
 
-    [ExcelFunction(Name = "BOND_PRICE", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Present value of a bond given yield to maturity.",
-        HelpTopic = "https://aleksejcupic.github.io/financial-math/bonds/bond-math")]
+    [ExcelFunction(Name = BondConstants.PriceName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.PriceDesc, HelpTopic = BondConstants.HelpBondMath)]
     public static object BondPrice(
-        [ExcelArgument(Name = "face",       Description = "Face (par) value")]                              object face,
-        [ExcelArgument(Name = "couponRate", Description = "Annual coupon rate (e.g. 0.05 = 5%)")]           object couponRate,
-        [ExcelArgument(Name = "ytm",        Description = "Annual yield to maturity")]                       object ytm,
-        [ExcelArgument(Name = "years",      Description = "Years to maturity")]                              object years,
-        [ExcelArgument(Name = "frequency",  Description = "Coupon payments per year (default from Settings)")] object frequency)
-        => Enabled ? BondMath.Price(RangeHelper.Scalar(face), RangeHelper.Scalar(couponRate),
-                         RangeHelper.Scalar(ytm), RangeHelper.Scalar(years),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "face",       Description = Arg.Face)]                              object face,
+        [ExcelArgument(Name = "couponRate", Description = Arg.CouponRate)]                        object couponRate,
+        [ExcelArgument(Name = "ytm",        Description = BondConstants.ArgYtm)]                  object ytm,
+        [ExcelArgument(Name = "years",      Description = BondConstants.ArgYears)]                object years,
+        [ExcelArgument(Name = "frequency",  Description = BondConstants.ArgFrequencyDefault)]    object frequency)
+        => Fn.Run(Category.Bonds, () => BondMath.Price(
+               In.Price("face", face), In.Rate("couponRate", couponRate),
+               In.Rate("ytm", ytm), In.Years("years", years),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
-    [ExcelFunction(Name = "BOND_YTM", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Yield to maturity from bond price (Newton-Raphson solver).")]
+    [ExcelFunction(Name = BondConstants.YtmName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.YtmDesc)]
     public static object BondYtm(
-        [ExcelArgument(Name = "price",      Description = "Current bond market price")]                     object price,
-        [ExcelArgument(Name = "face",       Description = "Face (par) value")]                              object face,
-        [ExcelArgument(Name = "couponRate", Description = "Annual coupon rate")]                             object couponRate,
-        [ExcelArgument(Name = "years",      Description = "Years to maturity")]                              object years,
-        [ExcelArgument(Name = "frequency",  Description = "Coupon payments per year (default from Settings)")] object frequency)
-        => Enabled ? BondMath.YieldToMaturity(RangeHelper.Scalar(price), RangeHelper.Scalar(face),
-                         RangeHelper.Scalar(couponRate), RangeHelper.Scalar(years),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "price",      Description = BondConstants.ArgPrice)]               object price,
+        [ExcelArgument(Name = "face",       Description = Arg.Face)]                              object face,
+        [ExcelArgument(Name = "couponRate", Description = BondConstants.ArgCouponRatePlain)]      object couponRate,
+        [ExcelArgument(Name = "years",      Description = BondConstants.ArgYears)]                object years,
+        [ExcelArgument(Name = "frequency",  Description = BondConstants.ArgFrequencyDefault)]    object frequency)
+        => Fn.Run(Category.Bonds, () => BondMath.YieldToMaturity(
+               In.Price("price", price), In.Price("face", face),
+               In.Rate("couponRate", couponRate), In.Years("years", years),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
-    [ExcelFunction(Name = "BOND_DURATION", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Macaulay duration in years — weighted average time to cash flow receipt.")]
+    [ExcelFunction(Name = BondConstants.DurationName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.DurationDesc)]
     public static object BondDuration(
-        [ExcelArgument(Name = "face",       Description = "Face (par) value")]         object face,
-        [ExcelArgument(Name = "couponRate", Description = "Annual coupon rate")]        object couponRate,
-        [ExcelArgument(Name = "ytm",        Description = "Annual yield to maturity")]  object ytm,
-        [ExcelArgument(Name = "years",      Description = "Years to maturity")]         object years,
-        [ExcelArgument(Name = "frequency",  Description = "Payments per year")]         object frequency)
-        => Enabled ? BondMath.MacaulayDuration(RangeHelper.Scalar(face), RangeHelper.Scalar(couponRate),
-                         RangeHelper.Scalar(ytm), RangeHelper.Scalar(years),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "face",       Description = Arg.Face)]                          object face,
+        [ExcelArgument(Name = "couponRate", Description = BondConstants.ArgCouponRatePlain)]   object couponRate,
+        [ExcelArgument(Name = "ytm",        Description = BondConstants.ArgYtm)]              object ytm,
+        [ExcelArgument(Name = "years",      Description = BondConstants.ArgYears)]            object years,
+        [ExcelArgument(Name = "frequency",  Description = BondConstants.ArgFrequencyPlain)]   object frequency)
+        => Fn.Run(Category.Bonds, () => BondMath.MacaulayDuration(
+               In.Price("face", face), In.Rate("couponRate", couponRate),
+               In.Rate("ytm", ytm), In.Years("years", years),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
-    [ExcelFunction(Name = "BOND_MOD_DURATION", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Modified duration = Macaulay / (1 + ytm/frequency). Price sensitivity to yield.")]
+    [ExcelFunction(Name = BondConstants.ModDurationName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.ModDurationDesc)]
     public static object BondModDuration(
-        [ExcelArgument(Name = "face",       Description = "Face (par) value")]         object face,
-        [ExcelArgument(Name = "couponRate", Description = "Annual coupon rate")]        object couponRate,
-        [ExcelArgument(Name = "ytm",        Description = "Annual yield to maturity")]  object ytm,
-        [ExcelArgument(Name = "years",      Description = "Years to maturity")]         object years,
-        [ExcelArgument(Name = "frequency",  Description = "Payments per year")]         object frequency)
-        => Enabled ? BondMath.ModifiedDuration(RangeHelper.Scalar(face), RangeHelper.Scalar(couponRate),
-                         RangeHelper.Scalar(ytm), RangeHelper.Scalar(years),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "face",       Description = Arg.Face)]                          object face,
+        [ExcelArgument(Name = "couponRate", Description = BondConstants.ArgCouponRatePlain)]   object couponRate,
+        [ExcelArgument(Name = "ytm",        Description = BondConstants.ArgYtm)]              object ytm,
+        [ExcelArgument(Name = "years",      Description = BondConstants.ArgYears)]            object years,
+        [ExcelArgument(Name = "frequency",  Description = BondConstants.ArgFrequencyPlain)]   object frequency)
+        => Fn.Run(Category.Bonds, () => BondMath.ModifiedDuration(
+               In.Price("face", face), In.Rate("couponRate", couponRate),
+               In.Rate("ytm", ytm), In.Years("years", years),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
-    [ExcelFunction(Name = "BOND_CONVEXITY", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Bond convexity — second-order yield sensitivity. Improves duration approximation.")]
+    [ExcelFunction(Name = BondConstants.ConvexityName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.ConvexityDesc)]
     public static object BondConvexity(
-        [ExcelArgument(Name = "face",       Description = "Face (par) value")]         object face,
-        [ExcelArgument(Name = "couponRate", Description = "Annual coupon rate")]        object couponRate,
-        [ExcelArgument(Name = "ytm",        Description = "Annual yield to maturity")]  object ytm,
-        [ExcelArgument(Name = "years",      Description = "Years to maturity")]         object years,
-        [ExcelArgument(Name = "frequency",  Description = "Payments per year")]         object frequency)
-        => Enabled ? BondMath.Convexity(RangeHelper.Scalar(face), RangeHelper.Scalar(couponRate),
-                         RangeHelper.Scalar(ytm), RangeHelper.Scalar(years),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "face",       Description = Arg.Face)]                          object face,
+        [ExcelArgument(Name = "couponRate", Description = BondConstants.ArgCouponRatePlain)]   object couponRate,
+        [ExcelArgument(Name = "ytm",        Description = BondConstants.ArgYtm)]              object ytm,
+        [ExcelArgument(Name = "years",      Description = BondConstants.ArgYears)]            object years,
+        [ExcelArgument(Name = "frequency",  Description = BondConstants.ArgFrequencyPlain)]   object frequency)
+        => Fn.Run(Category.Bonds, () => BondMath.Convexity(
+               In.Price("face", face), In.Rate("couponRate", couponRate),
+               In.Rate("ytm", ytm), In.Years("years", years),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
-    [ExcelFunction(Name = "BOND_DV01", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "DV01 — dollar value of a 1 basis point move in yield.")]
+    [ExcelFunction(Name = BondConstants.Dv01Name, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.Dv01Desc)]
     public static object BondDv01(
-        [ExcelArgument(Name = "face",       Description = "Face (par) value")]         object face,
-        [ExcelArgument(Name = "couponRate", Description = "Annual coupon rate")]        object couponRate,
-        [ExcelArgument(Name = "ytm",        Description = "Annual yield to maturity")]  object ytm,
-        [ExcelArgument(Name = "years",      Description = "Years to maturity")]         object years,
-        [ExcelArgument(Name = "frequency",  Description = "Payments per year")]         object frequency)
-        => Enabled ? BondMath.DV01(RangeHelper.Scalar(face), RangeHelper.Scalar(couponRate),
-                         RangeHelper.Scalar(ytm), RangeHelper.Scalar(years),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "face",       Description = Arg.Face)]                          object face,
+        [ExcelArgument(Name = "couponRate", Description = BondConstants.ArgCouponRatePlain)]   object couponRate,
+        [ExcelArgument(Name = "ytm",        Description = BondConstants.ArgYtm)]              object ytm,
+        [ExcelArgument(Name = "years",      Description = BondConstants.ArgYears)]            object years,
+        [ExcelArgument(Name = "frequency",  Description = BondConstants.ArgFrequencyPlain)]   object frequency)
+        => Fn.Run(Category.Bonds, () => BondMath.DV01(
+               In.Price("face", face), In.Rate("couponRate", couponRate),
+               In.Rate("ytm", ytm), In.Years("years", years),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
-    [ExcelFunction(Name = "BOND_PRICE_CHANGE", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Approximate price change using duration and convexity for a given yield shift.")]
+    [ExcelFunction(Name = BondConstants.PriceChangeName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.PriceChangeDesc)]
     public static object BondPriceChange(
-        [ExcelArgument(Name = "face",       Description = "Face (par) value")]             object face,
-        [ExcelArgument(Name = "couponRate", Description = "Annual coupon rate")]            object couponRate,
-        [ExcelArgument(Name = "ytm",        Description = "Current annual yield")]          object ytm,
-        [ExcelArgument(Name = "years",      Description = "Years to maturity")]             object years,
-        [ExcelArgument(Name = "deltaYtm",   Description = "Yield change (e.g. 0.01 = +100bps)")] object deltaYtm,
-        [ExcelArgument(Name = "frequency",  Description = "Payments per year")]             object frequency)
-        => Enabled ? BondMath.ApproximatePriceChange(RangeHelper.Scalar(face), RangeHelper.Scalar(couponRate),
-                         RangeHelper.Scalar(ytm), RangeHelper.Scalar(years), RangeHelper.Scalar(deltaYtm),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "face",       Description = Arg.Face)]                          object face,
+        [ExcelArgument(Name = "couponRate", Description = BondConstants.ArgCouponRatePlain)]   object couponRate,
+        [ExcelArgument(Name = "ytm",        Description = BondConstants.ArgCurrentYtm)]       object ytm,
+        [ExcelArgument(Name = "years",      Description = BondConstants.ArgYears)]            object years,
+        [ExcelArgument(Name = "deltaYtm",   Description = BondConstants.ArgDeltaYtm)]         object deltaYtm,
+        [ExcelArgument(Name = "frequency",  Description = BondConstants.ArgFrequencyPlain)]   object frequency)
+        => Fn.Run(Category.Bonds, () => BondMath.ApproximatePriceChange(
+               In.Price("face", face), In.Rate("couponRate", couponRate),
+               In.Rate("ytm", ytm), In.Years("years", years), In.Rate("deltaYtm", deltaYtm),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
     // ── YieldCurve ────────────────────────────────────────────────────────────
 
-    [ExcelFunction(Name = "YC_DF", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Discount factor P(0,T) from a continuously compounded zero rate. P = exp(-r*T).")]
+    [ExcelFunction(Name = BondConstants.YcDfName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.YcDfDesc)]
     public static object YcDf(
-        [ExcelArgument(Name = "zeroRate", Description = "Continuously compounded zero rate")] object zeroRate,
-        [ExcelArgument(Name = "T",        Description = "Maturity in years")]                  object t)
-        => Enabled ? YieldCurve.DiscountFactor(RangeHelper.Scalar(zeroRate), RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "zeroRate", Description = BondConstants.ArgZeroRate)]      object zeroRate,
+        [ExcelArgument(Name = "T",        Description = BondConstants.ArgMaturityYears)] object t)
+        => Fn.Run(Category.Bonds, () => YieldCurve.DiscountFactor(
+               In.Rate("zeroRate", zeroRate), In.Years("T", t)));
 
-    [ExcelFunction(Name = "YC_TO_CONT", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Convert a periodically compounded rate to continuously compounded. r_cont = m*ln(1+R/m).")]
+    [ExcelFunction(Name = BondConstants.YcToContName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.YcToContDesc)]
     public static object YcToCont(
-        [ExcelArgument(Name = "rate",      Description = "Periodically compounded rate (e.g. 0.05)")]    object rate,
-        [ExcelArgument(Name = "frequency", Description = "Compounding frequency per year (default: Settings)")] object frequency)
-        => Enabled ? YieldCurve.ToContinuous(RangeHelper.Scalar(rate),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "rate",      Description = BondConstants.ArgRatePeriodic)]       object rate,
+        [ExcelArgument(Name = "frequency", Description = BondConstants.ArgFreqToContDefault)]  object frequency)
+        => Fn.Run(Category.Bonds, () => YieldCurve.ToContinuous(
+               In.Rate("rate", rate),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
-    [ExcelFunction(Name = "YC_FROM_CONT", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Convert a continuously compounded rate to periodic compounding. R = m*(exp(r/m)-1).")]
+    [ExcelFunction(Name = BondConstants.YcFromContName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.YcFromContDesc)]
     public static object YcFromCont(
-        [ExcelArgument(Name = "rate",      Description = "Continuously compounded rate")]        object rate,
-        [ExcelArgument(Name = "frequency", Description = "Target compounding frequency")]         object frequency)
-        => Enabled ? YieldCurve.FromContinuous(RangeHelper.Scalar(rate),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "rate",      Description = BondConstants.ArgRateContinuous)] object rate,
+        [ExcelArgument(Name = "frequency", Description = BondConstants.ArgFreqTarget)]     object frequency)
+        => Fn.Run(Category.Bonds, () => YieldCurve.FromContinuous(
+               In.Rate("rate", rate),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
-    [ExcelFunction(Name = "YC_FWD_RATE", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Continuously compounded forward rate for period [t1,t2]. f = (r2*t2 - r1*t1)/(t2-t1).")]
+    [ExcelFunction(Name = BondConstants.YcFwdRateName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.YcFwdRateDesc)]
     public static object YcFwdRate(
-        [ExcelArgument(Name = "r1", Description = "Zero rate to t1")]   object r1,
-        [ExcelArgument(Name = "t1", Description = "Start of forward period (years)")] object t1,
-        [ExcelArgument(Name = "r2", Description = "Zero rate to t2")]   object r2,
-        [ExcelArgument(Name = "t2", Description = "End of forward period (years)")]   object t2)
-        => Enabled ? YieldCurve.ForwardRate(RangeHelper.Scalar(r1), RangeHelper.Scalar(t1),
-                         RangeHelper.Scalar(r2), RangeHelper.Scalar(t2))
-                   : (object)Off;
+        [ExcelArgument(Name = "r1", Description = BondConstants.ArgR1)] object r1,
+        [ExcelArgument(Name = "t1", Description = BondConstants.ArgT1)] object t1,
+        [ExcelArgument(Name = "r2", Description = BondConstants.ArgR2)] object r2,
+        [ExcelArgument(Name = "t2", Description = BondConstants.ArgT2)] object t2)
+        => Fn.Run(Category.Bonds, () => YieldCurve.ForwardRate(
+               In.Rate("r1", r1), In.Years("t1", t1),
+               In.Rate("r2", r2), In.Years("t2", t2)));
 
-    [ExcelFunction(Name = "YC_INTERPOLATE", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Linearly interpolate a zero rate from a zero curve at time T.")]
+    [ExcelFunction(Name = BondConstants.YcInterpolateName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.YcInterpolateDesc)]
     public static object YcInterpolate(
-        [ExcelArgument(Name = "maturities", Description = "Zero curve maturity points (range)")] object maturities,
-        [ExcelArgument(Name = "zeroRates",  Description = "Zero rates at each maturity (range)")] object zeroRates,
-        [ExcelArgument(Name = "T",          Description = "Target maturity in years")]             object t)
-        => Enabled ? YieldCurve.InterpolateZeroRate(
-                         RangeHelper.ToDoubleArray(maturities),
-                         RangeHelper.ToDoubleArray(zeroRates),
-                         RangeHelper.Scalar(t))
-                   : (object)Off;
+        [ExcelArgument(Name = "maturities", Description = BondConstants.ArgMaturities)]      object maturities,
+        [ExcelArgument(Name = "zeroRates",  Description = BondConstants.ArgZeroRates)]       object zeroRates,
+        [ExcelArgument(Name = "T",          Description = BondConstants.ArgTargetMaturityT)] object t)
+        => Fn.Run(Category.Bonds, () => YieldCurve.InterpolateZeroRate(
+               In.Vector("maturities", maturities),
+               In.Vector("zeroRates", zeroRates),
+               In.Years("T", t)));
 
-    [ExcelFunction(Name = "YC_PAR_YIELD", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Par yield at a target maturity from the zero curve.")]
+    [ExcelFunction(Name = BondConstants.YcParYieldName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.YcParYieldDesc)]
     public static object YcParYield(
-        [ExcelArgument(Name = "maturities",     Description = "Zero curve maturity points (range)")] object maturities,
-        [ExcelArgument(Name = "zeroRates",      Description = "Zero rates at each maturity (range)")] object zeroRates,
-        [ExcelArgument(Name = "targetMaturity", Description = "Desired par yield maturity in years")]  object targetMaturity,
-        [ExcelArgument(Name = "frequency",      Description = "Coupon frequency (default: Settings)")]  object frequency)
-        => Enabled ? YieldCurve.ParYield(
-                         RangeHelper.ToDoubleArray(maturities),
-                         RangeHelper.ToDoubleArray(zeroRates),
-                         RangeHelper.Scalar(targetMaturity),
-                         RangeHelper.IsMissing(frequency) ? Freq : RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "maturities",     Description = BondConstants.ArgMaturities)]        object maturities,
+        [ExcelArgument(Name = "zeroRates",      Description = BondConstants.ArgZeroRates)]         object zeroRates,
+        [ExcelArgument(Name = "targetMaturity", Description = BondConstants.ArgTargetMaturityPar)] object targetMaturity,
+        [ExcelArgument(Name = "frequency",      Description = BondConstants.ArgFreqCouponDefault)] object frequency)
+        => Fn.Run(Category.Bonds, () => YieldCurve.ParYield(
+               In.Vector("maturities", maturities),
+               In.Vector("zeroRates", zeroRates),
+               In.Years("targetMaturity", targetMaturity),
+               In.PosInt("frequency", frequency, UserSettings.Current.DefaultFrequency)));
 
     // ── MortgageMath ──────────────────────────────────────────────────────────
 
-    [ExcelFunction(Name = "MORT_PAYMENT", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Periodic payment for a fully amortising fixed-rate loan. M = P*r*(1+r)^n/((1+r)^n-1).")]
+    [ExcelFunction(Name = BondConstants.MortPaymentName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.MortPaymentDesc)]
     public static object MortPayment(
-        [ExcelArgument(Name = "principal",       Description = "Loan amount")]                             object principal,
-        [ExcelArgument(Name = "annualRate",      Description = "Annual nominal interest rate")]             object annualRate,
-        [ExcelArgument(Name = "years",           Description = "Loan term in years")]                      object years,
-        [ExcelArgument(Name = "paymentsPerYear", Description = "Payment frequency per year (default 12)")] object paymentsPerYear)
-        => Enabled ? MortgageMath.Payment(RangeHelper.Scalar(principal), RangeHelper.Scalar(annualRate),
-                         RangeHelper.Scalar(years),
-                         RangeHelper.IsMissing(paymentsPerYear) ? 12 : RangeHelper.ScalarInt(paymentsPerYear))
-                   : (object)Off;
+        [ExcelArgument(Name = "principal",       Description = BondConstants.ArgPrincipal)]       object principal,
+        [ExcelArgument(Name = "annualRate",      Description = BondConstants.ArgAnnualRate)]      object annualRate,
+        [ExcelArgument(Name = "years",           Description = BondConstants.ArgLoanTermYears)]   object years,
+        [ExcelArgument(Name = "paymentsPerYear", Description = BondConstants.ArgPaymentsPerYear)] object paymentsPerYear)
+        => Fn.Run(Category.Bonds, () => MortgageMath.Payment(
+               In.Price("principal", principal), In.Rate("annualRate", annualRate),
+               In.Years("years", years),
+               In.PosInt("paymentsPerYear", paymentsPerYear, BondConstants.DefaultPaymentsPerYear)));
 
-    [ExcelFunction(Name = "MORT_BALANCE", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Outstanding loan balance after k payments have been made.")]
+    [ExcelFunction(Name = BondConstants.MortBalanceName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.MortBalanceDesc)]
     public static object MortBalance(
-        [ExcelArgument(Name = "principal",       Description = "Original loan amount")]                    object principal,
-        [ExcelArgument(Name = "annualRate",      Description = "Annual nominal interest rate")]             object annualRate,
-        [ExcelArgument(Name = "years",           Description = "Total loan term in years")]                 object years,
-        [ExcelArgument(Name = "paymentsMade",    Description = "Number of payments already made")]          object paymentsMade,
-        [ExcelArgument(Name = "paymentsPerYear", Description = "Payment frequency per year (default 12)")] object paymentsPerYear)
-        => Enabled ? MortgageMath.OutstandingBalance(RangeHelper.Scalar(principal), RangeHelper.Scalar(annualRate),
-                         RangeHelper.Scalar(years), RangeHelper.ScalarInt(paymentsMade),
-                         RangeHelper.IsMissing(paymentsPerYear) ? 12 : RangeHelper.ScalarInt(paymentsPerYear))
-                   : (object)Off;
+        [ExcelArgument(Name = "principal",       Description = BondConstants.ArgPrincipalOrig)]      object principal,
+        [ExcelArgument(Name = "annualRate",      Description = BondConstants.ArgAnnualRate)]         object annualRate,
+        [ExcelArgument(Name = "years",           Description = BondConstants.ArgLoanTermTotalYears)] object years,
+        [ExcelArgument(Name = "paymentsMade",    Description = BondConstants.ArgPaymentsMade)]       object paymentsMade,
+        [ExcelArgument(Name = "paymentsPerYear", Description = BondConstants.ArgPaymentsPerYear)]    object paymentsPerYear)
+        => Fn.Run(Category.Bonds, () => MortgageMath.OutstandingBalance(
+               In.Price("principal", principal), In.Rate("annualRate", annualRate),
+               In.Years("years", years), In.Count("paymentsMade", paymentsMade),
+               In.PosInt("paymentsPerYear", paymentsPerYear, BondConstants.DefaultPaymentsPerYear)));
 
-    [ExcelFunction(Name = "MORT_TOTAL_INTEREST", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Total interest paid over the life of a loan. = n*M - P.")]
+    [ExcelFunction(Name = BondConstants.MortTotalInterestName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.MortTotalInterestDesc)]
     public static object MortTotalInterest(
-        [ExcelArgument(Name = "principal",       Description = "Loan amount")]                             object principal,
-        [ExcelArgument(Name = "annualRate",      Description = "Annual nominal interest rate")]             object annualRate,
-        [ExcelArgument(Name = "years",           Description = "Loan term in years")]                      object years,
-        [ExcelArgument(Name = "paymentsPerYear", Description = "Payment frequency per year (default 12)")] object paymentsPerYear)
-        => Enabled ? MortgageMath.TotalInterest(RangeHelper.Scalar(principal), RangeHelper.Scalar(annualRate),
-                         RangeHelper.Scalar(years),
-                         RangeHelper.IsMissing(paymentsPerYear) ? 12 : RangeHelper.ScalarInt(paymentsPerYear))
-                   : (object)Off;
+        [ExcelArgument(Name = "principal",       Description = BondConstants.ArgPrincipal)]       object principal,
+        [ExcelArgument(Name = "annualRate",      Description = BondConstants.ArgAnnualRate)]      object annualRate,
+        [ExcelArgument(Name = "years",           Description = BondConstants.ArgLoanTermYears)]   object years,
+        [ExcelArgument(Name = "paymentsPerYear", Description = BondConstants.ArgPaymentsPerYear)] object paymentsPerYear)
+        => Fn.Run(Category.Bonds, () => MortgageMath.TotalInterest(
+               In.Price("principal", principal), In.Rate("annualRate", annualRate),
+               In.Years("years", years),
+               In.PosInt("paymentsPerYear", paymentsPerYear, BondConstants.DefaultPaymentsPerYear)));
 
-    [ExcelFunction(Name = "MORT_EAR", Category = "Finance | Bonds", IsThreadSafe = true,
-        Description = "Effective Annual Rate from a nominal rate compounded m times per year. EAR = (1+r/m)^m - 1.")]
+    [ExcelFunction(Name = BondConstants.MortEarName, Category = Cat.Bonds, IsThreadSafe = true,
+        Description = BondConstants.MortEarDesc)]
     public static object MortEar(
-        [ExcelArgument(Name = "nominalRate", Description = "Nominal annual rate")]     object nominalRate,
-        [ExcelArgument(Name = "frequency",   Description = "Compounding frequency")]   object frequency)
-        => Enabled ? MortgageMath.EffectiveAnnualRate(RangeHelper.Scalar(nominalRate),
-                         RangeHelper.ScalarInt(frequency))
-                   : (object)Off;
+        [ExcelArgument(Name = "nominalRate", Description = BondConstants.ArgNominalRate)]     object nominalRate,
+        [ExcelArgument(Name = "frequency",   Description = BondConstants.ArgCompoundingFreq)] object frequency)
+        => Fn.Run(Category.Bonds, () => MortgageMath.EffectiveAnnualRate(
+               In.Rate("nominalRate", nominalRate),
+               In.PosInt("frequency", frequency)));
 }

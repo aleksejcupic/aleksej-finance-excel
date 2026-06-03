@@ -1,30 +1,55 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <!-- .NET Framework 4.8 ships in every Windows 10/11, so the packed .xll is a true
+         single self-contained file with no runtime to install. The math library is
+         consumed via its netstandard2.0 target. -->
+    <TargetFramework>net48</TargetFramework>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <RootNamespace>Aleksej.Finance.Excel</RootNamespace>
     <AssemblyName>Aleksej.Finance.Excel</AssemblyName>
+
+    <!-- Single source of truth for the add-in version (read dynamically by the ribbon). -->
+    <Version>1.0.0</Version>
+
+    <!-- One add-in only: 64-bit, self-contained. No 32-bit build. -->
+    <ExcelDnaCreate32BitAddIn>false</ExcelDnaCreate32BitAddIn>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- ExcelDNA: provides [ExcelFunction] attribute and .xll build target -->
-    <PackageReference Include="ExcelDna.AddIn"     Version="1.8.0" />
-    <PackageReference Include="ExcelDna.Integration" Version="1.8.0" />
+    <!-- ExcelDNA: provides [ExcelFunction] attribute and .xll build target.
+         ExcelDna.Integration comes in transitively, so it is not referenced explicitly. -->
+    <PackageReference Include="ExcelDna.AddIn" Version="1.9.0" />
 
-    <!--
-      For local development, use the project reference below.
-      Once published to NuGet, swap to:
-        <PackageReference Include="AleksejCupic.FinancialMath" Version="1.0.0" />
-    -->
-    <ProjectReference Include="..\financial-math\AleksejCupic.FinancialMath.csproj" />
+    <!-- Math logic, published at https://www.nuget.org/packages/Aleksej.Finance -->
+    <PackageReference Include="Aleksej.Finance" Version="1.0.0" />
+
+    <!-- Build-only: polyfills modern C# (Index/Range, nullable attrs) on net48, and
+         supplies net48 reference assemblies so the build needs no targeting pack. -->
+    <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="Aleksej.Finance.Excel.dna" ExcelDnaAddIn="true" />
   </ItemGroup>
+
+  <!--
+    ExcelDNA names its packed output "<name>64-packed.xll". After packing, copy that single
+    self-contained 64-bit add-in to one clean filename: <output>\Aleksej.Finance.ExcelAddin.xll.
+    NOTE: the name must differ from the managed assembly base name (Aleksej.Finance.Excel),
+    otherwise the .NET dependency resolver treats the .xll and .dll as the same assembly with
+    two extensions and refuses to load. "ExcelAddin" keeps it clean and collision-free.
+    This is the only file you ever load or ship.
+  -->
+  <Target Name="CopySingleXll" AfterTargets="ExcelDnaPack">
+    <Copy SourceFiles="$(TargetDir)publish\Aleksej.Finance.Excel64-packed.xll"
+          DestinationFiles="$(TargetDir)Aleksej.Finance.ExcelAddin.xll" />
+    <Message Importance="high"
+             Text="Single self-contained add-in: $(TargetDir)Aleksej.Finance.ExcelAddin.xll" />
+  </Target>
 
 </Project>

@@ -1,94 +1,87 @@
 using ExcelDna.Integration;
-using AleksejCupic.FinancialMath.Derivatives;
+using Aleksej.Finance.Derivatives;
+using Aleksej.Finance.Excel.Constants;
 using Aleksej.Finance.Excel.Helpers;
-using Aleksej.Finance.Excel.Settings;
 
 namespace Aleksej.Finance.Excel.Functions;
 
 /// <summary>Black's (1976) model for interest rate caps, floors, and swaptions (Hull Ch. 29).</summary>
 public static class BlackModelFunctions
 {
-    private static bool Enabled => UserSettings.Load().EnableDerivatives;
-    private static string Off   => RangeHelper.DisabledMessage("Derivatives");
-
-    [ExcelFunction(Name = "BM_CAPLET", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Single caplet (or floorlet) price using Black's model. Pays max(F-K,0)*delta*notional at reset. Set isFloor=TRUE for floorlet.",
-        HelpTopic = "https://aleksejcupic.github.io/financial-math/derivatives/black-model")]
+    [ExcelFunction(Name = BlackModelConstants.CapletName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = BlackModelConstants.CapletDesc, HelpTopic = BlackModelConstants.Help)]
     public static object BmCaplet(
-        [ExcelArgument(Name = "notional",        Description = "Notional principal")]                           object notional,
-        [ExcelArgument(Name = "forwardRate",     Description = "Forward interest rate for the period (annual)")]object forwardRate,
-        [ExcelArgument(Name = "strike",          Description = "Cap/floor strike rate (annual)")]               object strike,
-        [ExcelArgument(Name = "T",               Description = "Time to start of accrual period (option expiry)")] object t,
-        [ExcelArgument(Name = "r",               Description = "Zero rate to T (continuously compounded)")]     object r,
-        [ExcelArgument(Name = "sigma",           Description = "Black volatility of the forward rate")]         object sigma,
-        [ExcelArgument(Name = "accrualFraction", Description = "Accrual period length in years (e.g. 0.5 for semi-annual)")] object accrualFraction,
-        [ExcelArgument(Name = "isFloor",         Description = "TRUE for floorlet, FALSE for caplet (default)")]object isFloor)
-        => Enabled ? BlackModel.CapletPrice(
-                         RangeHelper.Scalar(notional), RangeHelper.Scalar(forwardRate), RangeHelper.Scalar(strike),
-                         RangeHelper.Scalar(t), RangeHelper.Scalar(r), RangeHelper.Scalar(sigma),
-                         RangeHelper.IsMissing(accrualFraction) ? 0.5 : RangeHelper.Scalar(accrualFraction),
-                         RangeHelper.ScalarBool(isFloor))
-                   : (object)Off;
+        [ExcelArgument(Name = "notional",        Description = BlackModelConstants.Notional)]        object notional,
+        [ExcelArgument(Name = "forwardRate",     Description = BlackModelConstants.ForwardRate)]     object forwardRate,
+        [ExcelArgument(Name = "strike",          Description = BlackModelConstants.StrikeCapFloor)]  object strike,
+        [ExcelArgument(Name = "T",               Description = BlackModelConstants.TCaplet)]         object t,
+        [ExcelArgument(Name = "r",               Description = BlackModelConstants.RZero)]           object r,
+        [ExcelArgument(Name = "sigma",           Description = BlackModelConstants.SigmaForward)]    object sigma,
+        [ExcelArgument(Name = "accrualFraction", Description = BlackModelConstants.AccrualFraction)] object accrualFraction,
+        [ExcelArgument(Name = "isFloor",         Description = BlackModelConstants.IsFloor)]         object isFloor)
+        => Fn.Run(Category.Derivatives, () => BlackModel.CapletPrice(
+               In.Price("notional", notional), In.Rate("forwardRate", forwardRate), In.Rate("strike", strike),
+               In.Years("T", t), In.Rate("r", r), In.Vol("sigma", sigma),
+               RangeHelper.IsMissing(accrualFraction)
+                   ? BlackModelConstants.AccrualFractionDefault
+                   : In.Years("accrualFraction", accrualFraction),
+               In.Flag("isFloor", isFloor)));
 
-    [ExcelFunction(Name = "BM_CAP", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Interest rate cap price — sum of caplets over the payment schedule. All arrays must be the same length.")]
+    [ExcelFunction(Name = BlackModelConstants.CapName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = BlackModelConstants.CapDesc, HelpTopic = BlackModelConstants.Help)]
     public static object BmCap(
-        [ExcelArgument(Name = "notional",        Description = "Notional principal")]                    object notional,
-        [ExcelArgument(Name = "strike",          Description = "Cap strike rate")]                        object strike,
-        [ExcelArgument(Name = "sigma",           Description = "Flat Black volatility")]                  object sigma,
-        [ExcelArgument(Name = "paymentTimes",    Description = "Reset/start times of each caplet (range)")] object paymentTimes,
-        [ExcelArgument(Name = "zeroRates",       Description = "Zero rates at each payment time (range)")] object zeroRates,
-        [ExcelArgument(Name = "forwardRates",    Description = "Forward rates for each period (range)")]  object forwardRates,
-        [ExcelArgument(Name = "accrualFracs",    Description = "Accrual fractions for each period (range)")] object accrualFracs)
-        => Enabled ? BlackModel.CapPrice(
-                         RangeHelper.Scalar(notional), RangeHelper.Scalar(strike), RangeHelper.Scalar(sigma),
-                         RangeHelper.ToDoubleArray(paymentTimes), RangeHelper.ToDoubleArray(zeroRates),
-                         RangeHelper.ToDoubleArray(forwardRates), RangeHelper.ToDoubleArray(accrualFracs))
-                   : (object)Off;
+        [ExcelArgument(Name = "notional",     Description = BlackModelConstants.Notional)]            object notional,
+        [ExcelArgument(Name = "strike",       Description = BlackModelConstants.StrikeCap)]           object strike,
+        [ExcelArgument(Name = "sigma",        Description = BlackModelConstants.SigmaFlat)]           object sigma,
+        [ExcelArgument(Name = "paymentTimes", Description = BlackModelConstants.PaymentTimesReset)]   object paymentTimes,
+        [ExcelArgument(Name = "zeroRates",    Description = BlackModelConstants.ZeroRates)]           object zeroRates,
+        [ExcelArgument(Name = "forwardRates", Description = BlackModelConstants.ForwardRates)]        object forwardRates,
+        [ExcelArgument(Name = "accrualFracs", Description = BlackModelConstants.AccrualFracs)]        object accrualFracs)
+        => Fn.Run(Category.Derivatives, () => BlackModel.CapPrice(
+               In.Price("notional", notional), In.Rate("strike", strike), In.Vol("sigma", sigma),
+               In.Vector("paymentTimes", paymentTimes), In.Vector("zeroRates", zeroRates),
+               In.Vector("forwardRates", forwardRates), In.Vector("accrualFracs", accrualFracs)));
 
-    [ExcelFunction(Name = "BM_FLOOR", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Interest rate floor price — sum of floorlets. Same inputs as BM_CAP.")]
+    [ExcelFunction(Name = BlackModelConstants.FloorName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = BlackModelConstants.FloorDesc, HelpTopic = BlackModelConstants.Help)]
     public static object BmFloor(
-        [ExcelArgument(Name = "notional",     Description = "Notional principal")]                    object notional,
-        [ExcelArgument(Name = "strike",       Description = "Floor strike rate")]                     object strike,
-        [ExcelArgument(Name = "sigma",        Description = "Flat Black volatility")]                 object sigma,
-        [ExcelArgument(Name = "paymentTimes", Description = "Reset times (range)")]                   object paymentTimes,
-        [ExcelArgument(Name = "zeroRates",    Description = "Zero rates (range)")]                    object zeroRates,
-        [ExcelArgument(Name = "forwardRates", Description = "Forward rates (range)")]                 object forwardRates,
-        [ExcelArgument(Name = "accrualFracs", Description = "Accrual fractions (range)")]             object accrualFracs)
-        => Enabled ? BlackModel.FloorPrice(
-                         RangeHelper.Scalar(notional), RangeHelper.Scalar(strike), RangeHelper.Scalar(sigma),
-                         RangeHelper.ToDoubleArray(paymentTimes), RangeHelper.ToDoubleArray(zeroRates),
-                         RangeHelper.ToDoubleArray(forwardRates), RangeHelper.ToDoubleArray(accrualFracs))
-                   : (object)Off;
+        [ExcelArgument(Name = "notional",     Description = BlackModelConstants.Notional)]              object notional,
+        [ExcelArgument(Name = "strike",       Description = BlackModelConstants.StrikeFloor)]           object strike,
+        [ExcelArgument(Name = "sigma",        Description = BlackModelConstants.SigmaFlat)]             object sigma,
+        [ExcelArgument(Name = "paymentTimes", Description = BlackModelConstants.PaymentTimesResetShort)]object paymentTimes,
+        [ExcelArgument(Name = "zeroRates",    Description = BlackModelConstants.ZeroRatesShort)]        object zeroRates,
+        [ExcelArgument(Name = "forwardRates", Description = BlackModelConstants.ForwardRatesShort)]     object forwardRates,
+        [ExcelArgument(Name = "accrualFracs", Description = BlackModelConstants.AccrualFracsShort)]     object accrualFracs)
+        => Fn.Run(Category.Derivatives, () => BlackModel.FloorPrice(
+               In.Price("notional", notional), In.Rate("strike", strike), In.Vol("sigma", sigma),
+               In.Vector("paymentTimes", paymentTimes), In.Vector("zeroRates", zeroRates),
+               In.Vector("forwardRates", forwardRates), In.Vector("accrualFracs", accrualFracs)));
 
-    [ExcelFunction(Name = "BM_FWD_SWAP_RATE", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Forward swap rate R = (P(t0) - P(tn)) / sum(delta_i * P(ti)). This is the ATM swaption strike.")]
+    [ExcelFunction(Name = BlackModelConstants.FwdSwapRateName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = BlackModelConstants.FwdSwapRateDesc, HelpTopic = BlackModelConstants.Help)]
     public static object BmFwdSwapRate(
-        [ExcelArgument(Name = "paymentTimes",  Description = "Swap payment times in years (range, t0 = swaption expiry)")] object paymentTimes,
-        [ExcelArgument(Name = "zeroRates",     Description = "Zero rates at each payment time (range)")] object zeroRates,
-        [ExcelArgument(Name = "accrualFracs",  Description = "Accrual fractions (range)")]               object accrualFracs)
-        => Enabled ? BlackModel.ForwardSwapRate(
-                         RangeHelper.ToDoubleArray(paymentTimes), RangeHelper.ToDoubleArray(zeroRates),
-                         RangeHelper.ToDoubleArray(accrualFracs))
-                   : (object)Off;
+        [ExcelArgument(Name = "paymentTimes", Description = BlackModelConstants.PaymentTimesSwapExpiry)] object paymentTimes,
+        [ExcelArgument(Name = "zeroRates",    Description = BlackModelConstants.ZeroRates)]              object zeroRates,
+        [ExcelArgument(Name = "accrualFracs", Description = BlackModelConstants.AccrualFracsShort)]      object accrualFracs)
+        => Fn.Run(Category.Derivatives, () => BlackModel.ForwardSwapRate(
+               In.Vector("paymentTimes", paymentTimes), In.Vector("zeroRates", zeroRates),
+               In.Vector("accrualFracs", accrualFracs)));
 
-    [ExcelFunction(Name = "BM_SWAPTION", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Swaption price via Black's model. Payer = right to pay fixed K; Receiver = right to receive fixed K.")]
+    [ExcelFunction(Name = BlackModelConstants.SwaptionName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = BlackModelConstants.SwaptionDesc, HelpTopic = BlackModelConstants.Help)]
     public static object BmSwaption(
-        [ExcelArgument(Name = "notional",     Description = "Notional principal")]                              object notional,
-        [ExcelArgument(Name = "strike",       Description = "Fixed strike rate of the underlying swap")]         object strike,
-        [ExcelArgument(Name = "T",            Description = "Swaption expiry in years (= swap start date)")]    object t,
-        [ExcelArgument(Name = "sigma",        Description = "Black vol of the forward swap rate")]               object sigma,
-        [ExcelArgument(Name = "paymentTimes", Description = "Swap coupon payment times (range, starting at T)")] object paymentTimes,
-        [ExcelArgument(Name = "zeroRates",    Description = "Zero rates at each payment time (range)")]          object zeroRates,
-        [ExcelArgument(Name = "accrualFracs", Description = "Accrual fractions (range)")]                       object accrualFracs,
-        [ExcelArgument(Name = "isPayer",      Description = "TRUE = payer swaption (right to pay fixed), FALSE = receiver")] object isPayer)
-        => Enabled ? BlackModel.SwaptionPrice(
-                         RangeHelper.Scalar(notional), RangeHelper.Scalar(strike), RangeHelper.Scalar(t),
-                         RangeHelper.Scalar(sigma),
-                         RangeHelper.ToDoubleArray(paymentTimes), RangeHelper.ToDoubleArray(zeroRates),
-                         RangeHelper.ToDoubleArray(accrualFracs),
-                         RangeHelper.IsMissing(isPayer) ? true : RangeHelper.ScalarBool(isPayer))
-                   : (object)Off;
+        [ExcelArgument(Name = "notional",     Description = BlackModelConstants.Notional)]               object notional,
+        [ExcelArgument(Name = "strike",       Description = BlackModelConstants.StrikeSwap)]             object strike,
+        [ExcelArgument(Name = "T",            Description = BlackModelConstants.TSwaption)]              object t,
+        [ExcelArgument(Name = "sigma",        Description = BlackModelConstants.SigmaSwap)]              object sigma,
+        [ExcelArgument(Name = "paymentTimes", Description = BlackModelConstants.PaymentTimesSwapCoupon)] object paymentTimes,
+        [ExcelArgument(Name = "zeroRates",    Description = BlackModelConstants.ZeroRates)]              object zeroRates,
+        [ExcelArgument(Name = "accrualFracs", Description = BlackModelConstants.AccrualFracsShort)]      object accrualFracs,
+        [ExcelArgument(Name = "isPayer",      Description = BlackModelConstants.IsPayer)]               object isPayer)
+        => Fn.Run(Category.Derivatives, () => BlackModel.SwaptionPrice(
+               In.Price("notional", notional), In.Rate("strike", strike), In.Years("T", t),
+               In.Vol("sigma", sigma),
+               In.Vector("paymentTimes", paymentTimes), In.Vector("zeroRates", zeroRates),
+               In.Vector("accrualFracs", accrualFracs),
+               In.Flag("isPayer", isPayer, BlackModelConstants.IsPayerDefault)));
 }

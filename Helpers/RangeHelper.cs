@@ -7,7 +7,7 @@ namespace Aleksej.Finance.Excel.Helpers;
 
 /// <summary>
 /// Converts Excel cell ranges and scalar values to the types expected by the
-/// AleksejCupic.FinancialMath library. All function wrappers go through this class.
+/// Aleksej.Finance library. All function wrappers go through this class.
 /// </summary>
 internal static class RangeHelper
 {

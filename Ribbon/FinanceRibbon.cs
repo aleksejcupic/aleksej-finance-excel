@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using ExcelDna.Integration;
 using ExcelDna.Integration.CustomUI;
@@ -35,12 +36,12 @@ public class FinanceRibbon : ExcelRibbon
 
     public void OnRiskFreeRateChange(IRibbonControl _, string text)
     {
-        if (double.TryParse(text, out double v)) { _cfg.DefaultRiskFreeRate = v; _cfg.Save(); }
+        if (double.TryParse(text, out double v)) { _cfg.DefaultRiskFreeRate = v; _cfg.Save(); UserSettings.Invalidate(); }
     }
 
     public void OnLambdaChange(IRibbonControl _, string text)
     {
-        if (double.TryParse(text, out double v)) { _cfg.DefaultLambda = v; _cfg.Save(); }
+        if (double.TryParse(text, out double v)) { _cfg.DefaultLambda = v; _cfg.Save(); UserSettings.Invalidate(); }
     }
 
     public int GetTradingDaysIndex(IRibbonControl _) => _cfg.DefaultTradingDays switch { 260 => 1, 365 => 2, _ => 0 };
@@ -51,18 +52,21 @@ public class FinanceRibbon : ExcelRibbon
     {
         _cfg.DefaultTradingDays = selectedIndex switch { 1 => 260, 2 => 365, _ => 252 };
         _cfg.Save();
+        UserSettings.Invalidate();
     }
 
     public void OnConfidenceChange(IRibbonControl _, string selectedId, int selectedIndex)
     {
         _cfg.DefaultConfidence = selectedIndex switch { 1 => 0.99, 2 => 0.999, _ => 0.95 };
         _cfg.Save();
+        UserSettings.Invalidate();
     }
 
     public void OnFrequencyChange(IRibbonControl _, string selectedId, int selectedIndex)
     {
         _cfg.DefaultFrequency = selectedIndex switch { 0 => 1, 2 => 4, 3 => 12, _ => 2 };
         _cfg.Save();
+        UserSettings.Invalidate();
     }
 
     // ── Category toggle checkboxes ────────────────────────────────────────────
@@ -75,19 +79,26 @@ public class FinanceRibbon : ExcelRibbon
     public bool GetEnableFeesAttribution(IRibbonControl _)  => _cfg.EnableFeesAttribution;
     public bool GetEnableLiveData(IRibbonControl _)         => _cfg.EnableLiveData;
 
-    public void OnEnableOptions(IRibbonControl _, bool pressed)         { _cfg.EnableOptions          = pressed; _cfg.Save(); }
-    public void OnEnableBonds(IRibbonControl _, bool pressed)           { _cfg.EnableBonds            = pressed; _cfg.Save(); }
-    public void OnEnableDerivatives(IRibbonControl _, bool pressed)     { _cfg.EnableDerivatives      = pressed; _cfg.Save(); }
-    public void OnEnableCredit(IRibbonControl _, bool pressed)          { _cfg.EnableCredit           = pressed; _cfg.Save(); }
-    public void OnEnablePortfolioRisk(IRibbonControl _, bool pressed)   { _cfg.EnablePortfolioRisk    = pressed; _cfg.Save(); }
-    public void OnEnableFeesAttribution(IRibbonControl _, bool pressed) { _cfg.EnableFeesAttribution  = pressed; _cfg.Save(); }
-    public void OnEnableLiveData(IRibbonControl _, bool pressed)        { _cfg.EnableLiveData         = pressed; _cfg.Save(); }
+    public void OnEnableOptions(IRibbonControl _, bool pressed)         { _cfg.EnableOptions          = pressed; _cfg.Save(); UserSettings.Invalidate(); }
+    public void OnEnableBonds(IRibbonControl _, bool pressed)           { _cfg.EnableBonds            = pressed; _cfg.Save(); UserSettings.Invalidate(); }
+    public void OnEnableDerivatives(IRibbonControl _, bool pressed)     { _cfg.EnableDerivatives      = pressed; _cfg.Save(); UserSettings.Invalidate(); }
+    public void OnEnableCredit(IRibbonControl _, bool pressed)          { _cfg.EnableCredit           = pressed; _cfg.Save(); UserSettings.Invalidate(); }
+    public void OnEnablePortfolioRisk(IRibbonControl _, bool pressed)   { _cfg.EnablePortfolioRisk    = pressed; _cfg.Save(); UserSettings.Invalidate(); }
+    public void OnEnableFeesAttribution(IRibbonControl _, bool pressed) { _cfg.EnableFeesAttribution  = pressed; _cfg.Save(); UserSettings.Invalidate(); }
+    public void OnEnableLiveData(IRibbonControl _, bool pressed)        { _cfg.EnableLiveData         = pressed; _cfg.Save(); UserSettings.Invalidate(); }
+
+    // ── Error display mode ────────────────────────────────────────────────────
+
+    public bool GetErrorsAsExcelError(IRibbonControl _) => _cfg.ErrorsAsExcelError;
+
+    public void OnErrorsAsExcelError(IRibbonControl _, bool pressed) { _cfg.ErrorsAsExcelError = pressed; _cfg.Save(); UserSettings.Invalidate(); }
 
     // ── Utility buttons ───────────────────────────────────────────────────────
 
     public void OnResetDefaults(IRibbonControl _)
     {
         UserSettings.ResetToDefaults();
+        UserSettings.Invalidate();
         _cfg = UserSettings.Load();
         _ribbon?.Invalidate();
     }
@@ -102,8 +113,30 @@ public class FinanceRibbon : ExcelRibbon
     {
         // Use ExcelDNA's native alert (no Windows.Forms dependency required)
         XlCall.Excel(XlCall.xlcAlert,
-            "Excel Finance Add-In\n\nPowered by AleksejCupic.FinancialMath\n\n" +
+            $"Excel Finance Add-In  v{AddInVersion}\n\nPowered by Aleksej.Finance\n\n" +
             "Author: Aleksej Cupic\naleksejcupic.com", 2);
+    }
+
+    /// <summary>Live version label shown in the ribbon (e.g. "v1.0.0").</summary>
+    public string GetVersionLabel(IRibbonControl _) => $"v{AddInVersion}";
+
+    /// <summary>
+    /// The add-in version, read from the assembly's informational version (set by
+    /// &lt;Version&gt; in the csproj). Build metadata after '+' is stripped.
+    /// </summary>
+    private static string AddInVersion
+    {
+        get
+        {
+            Assembly asm = typeof(FinanceRibbon).Assembly;
+            string? info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrEmpty(info))
+            {
+                int plus = info.IndexOf('+');
+                return plus >= 0 ? info[..plus] : info;
+            }
+            return asm.GetName().Version?.ToString() ?? "1.0.0";
+        }
     }
 
     // ── Ribbon XML ────────────────────────────────────────────────────────────
@@ -144,6 +177,9 @@ public class FinanceRibbon : ExcelRibbon
           <editBox id='ebLambda'         label='EWMA Lambda'
                    getText='GetLambda' onChange='OnLambdaChange'
                    sizeString='0.9400' screentip='EWMA decay factor (0.94 = RiskMetrics standard)'/>
+          <checkBox id='chkErrorsAsExcel' label='Errors as Excel errors (#NUM!/#VALUE!)'
+                    getPressed='GetErrorsAsExcelError' onAction='OnErrorsAsExcelError'
+                    screentip='When on, invalid inputs return #NUM!/#VALUE! so IFERROR can catch them. When off, a descriptive message is shown in the cell.'/>
         </group>
 
         <!-- Function Category Toggles group -->
@@ -172,6 +208,7 @@ public class FinanceRibbon : ExcelRibbon
                   screentip='Restore all settings to their factory defaults'/>
           <button id='btnAbout'  label='About' onAction='OnAbout'
                   screentip='Version information and author details'/>
+          <labelControl id='lblVersion' getLabel='GetVersionLabel'/>
         </group>
 
       </tab>

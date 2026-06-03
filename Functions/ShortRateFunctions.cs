@@ -1,103 +1,92 @@
 using ExcelDna.Integration;
-using AleksejCupic.FinancialMath.Derivatives;
+using Aleksej.Finance.Derivatives;
+using Aleksej.Finance.Excel.Constants;
 using Aleksej.Finance.Excel.Helpers;
-using Aleksej.Finance.Excel.Settings;
 
 namespace Aleksej.Finance.Excel.Functions;
 
 /// <summary>Vasicek and CIR short-rate models for term structure and bond pricing (Hull Ch. 31-32).</summary>
 public static class ShortRateFunctions
 {
-    private static bool Enabled => UserSettings.Load().EnableDerivatives;
-    private static string Off   => RangeHelper.DisabledMessage("Derivatives");
-
-    [ExcelFunction(Name = "SR_VASICEK_PRICE", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Zero-coupon bond price under the Vasicek model. dr = kappa*(theta-r)*dt + sigma*dW. P = A(tau)*exp(-B(tau)*r).",
-        HelpTopic = "https://aleksejcupic.github.io/financial-math/derivatives/short-rate-models")]
+    [ExcelFunction(Name = ShortRateConstants.VasicekPriceName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ShortRateConstants.VasicekPriceDesc, HelpTopic = ShortRateConstants.Help)]
     public static object SrVasicekPrice(
-        [ExcelArgument(Name = "r",     Description = "Current short rate")]          object r,
-        [ExcelArgument(Name = "tau",   Description = "Time to maturity in years")]   object tau,
-        [ExcelArgument(Name = "kappa", Description = "Mean-reversion speed")]        object kappa,
-        [ExcelArgument(Name = "theta", Description = "Long-run mean rate")]          object theta,
-        [ExcelArgument(Name = "sigma", Description = "Short-rate volatility")]       object sigma)
-        => Enabled ? ShortRateModels.VasicekBondPrice(
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(tau), RangeHelper.Scalar(kappa),
-                         RangeHelper.Scalar(theta), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "r",     Description = ShortRateConstants.ShortRate)]   object r,
+        [ExcelArgument(Name = "tau",   Description = ShortRateConstants.TauMaturity)] object tau,
+        [ExcelArgument(Name = "kappa", Description = ShortRateConstants.Kappa)]       object kappa,
+        [ExcelArgument(Name = "theta", Description = ShortRateConstants.Theta)]       object theta,
+        [ExcelArgument(Name = "sigma", Description = ShortRateConstants.SigmaVol)]    object sigma)
+        => Fn.Run(Category.Derivatives, () => ShortRateModels.VasicekBondPrice(
+               In.Num("r", r), In.Years("tau", tau), In.Num("kappa", kappa),
+               In.Num("theta", theta), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "SR_VASICEK_YIELD", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Continuously compounded zero yield under the Vasicek model. R = -ln(P)/tau.")]
+    [ExcelFunction(Name = ShortRateConstants.VasicekYieldName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ShortRateConstants.VasicekYieldDesc, HelpTopic = ShortRateConstants.Help)]
     public static object SrVasicekYield(
-        [ExcelArgument(Name = "r",     Description = "Current short rate")]     object r,
-        [ExcelArgument(Name = "tau",   Description = "Maturity in years")]      object tau,
-        [ExcelArgument(Name = "kappa", Description = "Mean-reversion speed")]   object kappa,
-        [ExcelArgument(Name = "theta", Description = "Long-run mean rate")]     object theta,
-        [ExcelArgument(Name = "sigma", Description = "Short-rate volatility")]  object sigma)
-        => Enabled ? ShortRateModels.VasicekYield(
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(tau), RangeHelper.Scalar(kappa),
-                         RangeHelper.Scalar(theta), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "r",     Description = ShortRateConstants.ShortRate)] object r,
+        [ExcelArgument(Name = "tau",   Description = ShortRateConstants.Maturity)]  object tau,
+        [ExcelArgument(Name = "kappa", Description = ShortRateConstants.Kappa)]     object kappa,
+        [ExcelArgument(Name = "theta", Description = ShortRateConstants.Theta)]     object theta,
+        [ExcelArgument(Name = "sigma", Description = ShortRateConstants.SigmaVol)]  object sigma)
+        => Fn.Run(Category.Derivatives, () => ShortRateModels.VasicekYield(
+               In.Num("r", r), In.Years("tau", tau), In.Num("kappa", kappa),
+               In.Num("theta", theta), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "SR_VASICEK_LRYIELD", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Vasicek long-run yield as tau → infinity. R(∞) = theta - sigma²/(2*kappa²).")]
+    [ExcelFunction(Name = ShortRateConstants.VasicekLrYieldName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ShortRateConstants.VasicekLrYieldDesc, HelpTopic = ShortRateConstants.Help)]
     public static object SrVasicekLrYield(
-        [ExcelArgument(Name = "kappa", Description = "Mean-reversion speed")]   object kappa,
-        [ExcelArgument(Name = "theta", Description = "Long-run mean rate")]     object theta,
-        [ExcelArgument(Name = "sigma", Description = "Short-rate volatility")]  object sigma)
-        => Enabled ? ShortRateModels.VasicekLongRunYield(
-                         RangeHelper.Scalar(kappa), RangeHelper.Scalar(theta), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "kappa", Description = ShortRateConstants.Kappa)]    object kappa,
+        [ExcelArgument(Name = "theta", Description = ShortRateConstants.Theta)]    object theta,
+        [ExcelArgument(Name = "sigma", Description = ShortRateConstants.SigmaVol)] object sigma)
+        => Fn.Run(Category.Derivatives, () => ShortRateModels.VasicekLongRunYield(
+               In.Num("kappa", kappa), In.Num("theta", theta), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "SR_VASICEK_OPTION", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "European call or put option on a zero-coupon bond under the Vasicek model (Jamshidian 1989).")]
+    [ExcelFunction(Name = ShortRateConstants.VasicekOptionName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ShortRateConstants.VasicekOptionDesc, HelpTopic = ShortRateConstants.Help)]
     public static object SrVasicekOption(
-        [ExcelArgument(Name = "r",        Description = "Current short rate")]              object r,
-        [ExcelArgument(Name = "T",        Description = "Option expiry in years")]          object t,
-        [ExcelArgument(Name = "maturity", Description = "Bond maturity in years (> T)")]   object maturity,
-        [ExcelArgument(Name = "K",        Description = "Option strike price")]             object k,
-        [ExcelArgument(Name = "kappa",    Description = "Mean-reversion speed")]            object kappa,
-        [ExcelArgument(Name = "theta",    Description = "Long-run mean rate")]              object theta,
-        [ExcelArgument(Name = "sigma",    Description = "Short-rate volatility")]           object sigma,
-        [ExcelArgument(Name = "isPut",    Description = "TRUE for put, FALSE for call")]    object isPut)
-        => Enabled ? ShortRateModels.VasicekBondOption(
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(t), RangeHelper.Scalar(maturity),
-                         RangeHelper.Scalar(k), RangeHelper.Scalar(kappa), RangeHelper.Scalar(theta),
-                         RangeHelper.Scalar(sigma), RangeHelper.ScalarBool(isPut))
-                   : (object)Off;
+        [ExcelArgument(Name = "r",        Description = ShortRateConstants.ShortRate)]    object r,
+        [ExcelArgument(Name = "T",        Description = ShortRateConstants.OptionExpiry)] object t,
+        [ExcelArgument(Name = "maturity", Description = ShortRateConstants.BondMaturity)] object maturity,
+        [ExcelArgument(Name = "K",        Description = ShortRateConstants.Strike)]       object k,
+        [ExcelArgument(Name = "kappa",    Description = ShortRateConstants.Kappa)]        object kappa,
+        [ExcelArgument(Name = "theta",    Description = ShortRateConstants.Theta)]        object theta,
+        [ExcelArgument(Name = "sigma",    Description = ShortRateConstants.SigmaVol)]     object sigma,
+        [ExcelArgument(Name = "isPut",    Description = ShortRateConstants.IsPut)]        object isPut)
+        => Fn.Run(Category.Derivatives, () => ShortRateModels.VasicekBondOption(
+               In.Num("r", r), In.Years("T", t), In.Years("maturity", maturity),
+               In.Price("K", k), In.Num("kappa", kappa), In.Num("theta", theta),
+               In.Vol("sigma", sigma), In.Flag("isPut", isPut)));
 
-    [ExcelFunction(Name = "SR_CIR_PRICE", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Zero-coupon bond price under the CIR model. dr = kappa*(theta-r)*dt + sigma*sqrt(r)*dW. Square-root keeps r non-negative.")]
+    [ExcelFunction(Name = ShortRateConstants.CirPriceName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ShortRateConstants.CirPriceDesc, HelpTopic = ShortRateConstants.Help)]
     public static object SrCirPrice(
-        [ExcelArgument(Name = "r",     Description = "Current short rate")]     object r,
-        [ExcelArgument(Name = "tau",   Description = "Maturity in years")]      object tau,
-        [ExcelArgument(Name = "kappa", Description = "Mean-reversion speed")]   object kappa,
-        [ExcelArgument(Name = "theta", Description = "Long-run mean rate")]     object theta,
-        [ExcelArgument(Name = "sigma", Description = "Volatility coefficient")] object sigma)
-        => Enabled ? ShortRateModels.CirBondPrice(
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(tau), RangeHelper.Scalar(kappa),
-                         RangeHelper.Scalar(theta), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "r",     Description = ShortRateConstants.ShortRate)]  object r,
+        [ExcelArgument(Name = "tau",   Description = ShortRateConstants.Maturity)]   object tau,
+        [ExcelArgument(Name = "kappa", Description = ShortRateConstants.Kappa)]      object kappa,
+        [ExcelArgument(Name = "theta", Description = ShortRateConstants.Theta)]      object theta,
+        [ExcelArgument(Name = "sigma", Description = ShortRateConstants.SigmaCoeff)] object sigma)
+        => Fn.Run(Category.Derivatives, () => ShortRateModels.CirBondPrice(
+               In.Num("r", r), In.Years("tau", tau), In.Num("kappa", kappa),
+               In.Num("theta", theta), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "SR_CIR_YIELD", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "Continuously compounded zero yield under the CIR model. R = -ln(P)/tau.")]
+    [ExcelFunction(Name = ShortRateConstants.CirYieldName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ShortRateConstants.CirYieldDesc, HelpTopic = ShortRateConstants.Help)]
     public static object SrCirYield(
-        [ExcelArgument(Name = "r",     Description = "Current short rate")]     object r,
-        [ExcelArgument(Name = "tau",   Description = "Maturity in years")]      object tau,
-        [ExcelArgument(Name = "kappa", Description = "Mean-reversion speed")]   object kappa,
-        [ExcelArgument(Name = "theta", Description = "Long-run mean rate")]     object theta,
-        [ExcelArgument(Name = "sigma", Description = "Volatility coefficient")] object sigma)
-        => Enabled ? ShortRateModels.CirYield(
-                         RangeHelper.Scalar(r), RangeHelper.Scalar(tau), RangeHelper.Scalar(kappa),
-                         RangeHelper.Scalar(theta), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "r",     Description = ShortRateConstants.ShortRate)]  object r,
+        [ExcelArgument(Name = "tau",   Description = ShortRateConstants.Maturity)]   object tau,
+        [ExcelArgument(Name = "kappa", Description = ShortRateConstants.Kappa)]      object kappa,
+        [ExcelArgument(Name = "theta", Description = ShortRateConstants.Theta)]      object theta,
+        [ExcelArgument(Name = "sigma", Description = ShortRateConstants.SigmaCoeff)] object sigma)
+        => Fn.Run(Category.Derivatives, () => ShortRateModels.CirYield(
+               In.Num("r", r), In.Years("tau", tau), In.Num("kappa", kappa),
+               In.Num("theta", theta), In.Vol("sigma", sigma)));
 
-    [ExcelFunction(Name = "SR_CIR_LRYIELD", Category = "Finance | Derivatives", IsThreadSafe = true,
-        Description = "CIR long-run yield. R(∞) = 2*kappa*theta / (kappa + gamma), where gamma = sqrt(kappa² + 2*sigma²).")]
+    [ExcelFunction(Name = ShortRateConstants.CirLrYieldName, Category = Cat.Derivatives, IsThreadSafe = true,
+        Description = ShortRateConstants.CirLrYieldDesc, HelpTopic = ShortRateConstants.Help)]
     public static object SrCirLrYield(
-        [ExcelArgument(Name = "kappa", Description = "Mean-reversion speed")]   object kappa,
-        [ExcelArgument(Name = "theta", Description = "Long-run mean rate")]     object theta,
-        [ExcelArgument(Name = "sigma", Description = "Volatility coefficient")] object sigma)
-        => Enabled ? ShortRateModels.CirLongRunYield(
-                         RangeHelper.Scalar(kappa), RangeHelper.Scalar(theta), RangeHelper.Scalar(sigma))
-                   : (object)Off;
+        [ExcelArgument(Name = "kappa", Description = ShortRateConstants.Kappa)]      object kappa,
+        [ExcelArgument(Name = "theta", Description = ShortRateConstants.Theta)]      object theta,
+        [ExcelArgument(Name = "sigma", Description = ShortRateConstants.SigmaCoeff)] object sigma)
+        => Fn.Run(Category.Derivatives, () => ShortRateModels.CirLongRunYield(
+               In.Num("kappa", kappa), In.Num("theta", theta), In.Vol("sigma", sigma)));
 }
