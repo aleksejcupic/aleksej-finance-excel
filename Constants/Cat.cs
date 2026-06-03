@@ -17,6 +17,6 @@ internal static class Cat
     public const string Fees        = "Finance | Fees";
     public const string Attribution = "Finance | Attribution";
 
-    /// <summary>Base URL for HelpTopic links (online function reference).</summary>
-    public const string HelpBase = "https://aleksejcupic.github.io/financial-math";
+    /// <summary>Online help target (the repo README documents every function).</summary>
+    public const string HelpBase = "https://github.com/aleksejcupic/aleksej-finance-excel";
 }

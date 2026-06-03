@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and argument text for the short-rate (SR_*) functions.</summary>
 internal static class ShortRateConstants
 {
-    public const string Help = Cat.HelpBase + "/derivatives/short-rate-models";
+    public const string Help = Cat.HelpBase;
 
     public const string VasicekPriceName = "SR_VASICEK_PRICE";
     public const string VasicekPriceDesc = "Zero-coupon bond price under the Vasicek model. dr = kappa*(theta-r)*dt + sigma*dW. P = A(tau)*exp(-B(tau)*r).";

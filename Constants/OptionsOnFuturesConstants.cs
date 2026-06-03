@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help, and argument text for the options-on-futures (OF_*) functions.</summary>
 internal static class OptionsOnFuturesConstants
 {
-    public const string Help = Cat.HelpBase + "/options/options-on-futures";
+    public const string Help = Cat.HelpBase;
 
     public const string CallName = "OF_CALL";
     public const string CallDesc = "European call on a futures contract (Black 1976). C = exp(-rT)*[F*N(d1) - K*N(d2)]. Uses futures price F, not spot S.";

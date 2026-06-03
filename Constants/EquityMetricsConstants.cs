@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and argument descriptions for the equity metric (EQ_*) functions.</summary>
 internal static class EquityMetricsConstants
 {
-    public const string Help = Cat.HelpBase + "/portfolio/equity-metrics";
+    public const string Help = Cat.HelpBase;
 
     // ── EQ_MKTCAP ─────────────────────────────────────────────────────────────
     public const string MktCapName = "EQ_MKTCAP";

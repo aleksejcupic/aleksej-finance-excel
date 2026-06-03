@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and defaults for the binomial tree (BT_*) functions.</summary>
 internal static class BinomialTreeConstants
 {
-    public const string Help = Cat.HelpBase + "/options/binomial-tree";
+    public const string Help = Cat.HelpBase;
 
     public const int DefaultSteps = 200;
 

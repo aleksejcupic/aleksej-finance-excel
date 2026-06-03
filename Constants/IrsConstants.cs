@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and argument text for the IRS (IRS_*) functions.</summary>
 internal static class IrsConstants
 {
-    public const string Help = Cat.HelpBase + "/derivatives/interest-rate-swap";
+    public const string Help = Cat.HelpBase;
 
     public const string ValueName = "IRS_VALUE";
     public const string ValueDesc = "Fixed-for-floating IRS NPV. Value = B_fixed - B_float (receiver) or B_float - B_fixed (payer). Floating leg uses next-reset approximation.";

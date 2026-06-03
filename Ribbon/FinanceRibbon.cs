@@ -105,7 +105,7 @@ public class FinanceRibbon : ExcelRibbon
 
     public void OnOpenDocs(IRibbonControl _)
     {
-        try { Process.Start(new ProcessStartInfo("https://aleksejcupic.github.io/financial-math") { UseShellExecute = true }); }
+        try { Process.Start(new ProcessStartInfo("https://github.com/aleksejcupic/aleksej-finance-excel") { UseShellExecute = true }); }
         catch { /* ignore if browser unavailable */ }
     }
 

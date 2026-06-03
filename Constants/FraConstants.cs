@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and argument text for the FRA (FRA_*) functions.</summary>
 internal static class FraConstants
 {
-    public const string Help = Cat.HelpBase + "/derivatives/forward-rate-agreement";
+    public const string Help = Cat.HelpBase;
 
     public const string RateName = "FRA_RATE";
     public const string RateDesc = "Continuously compounded forward rate for [t1, t2] from zero rates. f = (r2*t2 - r1*t1)/(t2-t1).";

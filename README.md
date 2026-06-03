@@ -62,9 +62,34 @@ Aleksej.Finance.ExcelAddin.xll             (single self-contained 64-bit add-in)
 
 ## Install
 
-1. Download `Aleksej.Finance.ExcelAddin.xll` from GitHub Releases
-2. Open Excel → File → Options → Add-Ins → Manage: Excel Add-ins → Go
-3. Click Browse, select the `.xll` file, click OK
+1. Download `Aleksej.Finance.ExcelAddin.xll` from the [latest release](https://github.com/aleksejcupic/aleksej-finance-excel/releases/latest).
+2. **Unblock the file** (see "Why Excel blocks it" below). In PowerShell:
+   ```powershell
+   Unblock-File -Path "C:\path\to\Aleksej.Finance.ExcelAddin.xll"
+   ```
+   Or right-click the file, **Properties**, tick **Unblock** at the bottom, **Apply**.
+3. Open Excel, then File → Options → Add-ins → Manage: **Excel Add-ins** → Go.
+4. Click **Browse**, select the `.xll`, click **OK**.
+
+### Why Excel blocks it (and why that's expected)
+
+When you download the add-in, Windows tags it with a "came from the internet" mark, and since
+2022 Excel **blocks all internet-downloaded XLL add-ins by default** (XLLs were abused by
+malware, so Microsoft locks them down). You'll see a security notice saying the source is
+untrusted. This is not specific to this add-in: every unsigned XLL downloaded from the web
+gets the same treatment. **Unblocking the file** (step 2) removes that internet mark and lets
+Excel load it.
+
+The alternative would be a paid code-signing certificate, which this project doesn't use. Instead:
+
+- **It's fully open source.** Every line of the add-in and the underlying math library is in
+  this repo and in [`Aleksej.Finance`](https://github.com/aleksejcupic/aleksej-finance). You can
+  read exactly what it does.
+- **It's verifiable.** The released `.xll` is built by a public GitHub Actions workflow
+  ([`release.yml`](.github/workflows/release.yml)) straight from the tagged source, so you can
+  see precisely how the binary was produced.
+- **You can build it yourself.** If you'd rather not download a binary at all, clone the repo
+  and build it (see below). A locally-built `.xll` has no internet mark and loads directly.
 
 ---
 

@@ -8,7 +8,7 @@ namespace Aleksej.Finance.Excel.Constants;
 internal static class BondConstants
 {
     // ── Help topics ───────────────────────────────────────────────────────────
-    public const string HelpBondMath = Cat.HelpBase + "/bonds/bond-math";
+    public const string HelpBondMath = Cat.HelpBase;
 
     // ── Default numeric values ────────────────────────────────────────────────
     /// <summary>Default payment frequency per year for mortgage functions.</summary>

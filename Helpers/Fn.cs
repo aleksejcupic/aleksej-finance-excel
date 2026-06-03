@@ -48,6 +48,24 @@ internal static class Fn
     internal static object Run(Category cat, Func<object> body)
     {
         if (!IsEnabled(cat)) return RangeHelper.DisabledMessage(Label(cat));
+        return Execute(body);
+    }
+
+    /// <summary>
+    /// Runs an expensive function body on a background thread via ExcelAsyncUtil.
+    /// The cell shows #N/A while computing, then Excel re-evaluates with the result.
+    /// <paramref name="args"/> is the recalculation cache key. Functions using this
+    /// must NOT be marked IsThreadSafe.
+    /// </summary>
+    internal static object RunAsync(string name, object[] args, Category cat, Func<object> compute)
+    {
+        if (!IsEnabled(cat)) return RangeHelper.DisabledMessage(Label(cat));
+        return ExcelAsyncUtil.Run(name, args, () => Execute(compute));
+    }
+
+    /// <summary>Runs a body, turning thrown exceptions into friendly cell output.</summary>
+    private static object Execute(Func<object> body)
+    {
         try
         {
             return body();
@@ -60,32 +78,6 @@ internal static class Fn
         {
             return Format($"#ERROR: {ex.Message}", isValidation: false);
         }
-    }
-
-    /// <summary>
-    /// Runs an expensive function body on a background thread via ExcelAsyncUtil.
-    /// The cell shows #N/A while computing, then Excel re-evaluates with the result.
-    /// <paramref name="args"/> is the recalculation cache key. Functions using this
-    /// must NOT be marked IsThreadSafe.
-    /// </summary>
-    internal static object RunAsync(string name, object[] args, Category cat, Func<object> compute)
-    {
-        if (!IsEnabled(cat)) return RangeHelper.DisabledMessage(Label(cat));
-        return ExcelAsyncUtil.Run(name, args, () =>
-        {
-            try
-            {
-                return compute();
-            }
-            catch (FinanceInputException ex)
-            {
-                return Format(ex.Message, isValidation: true);
-            }
-            catch (Exception ex)
-            {
-                return Format($"#ERROR: {ex.Message}", isValidation: false);
-            }
-        });
     }
 
     /// <summary>

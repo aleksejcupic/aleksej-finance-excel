@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and argument text for the Markowitz (PORT_*) functions.</summary>
 internal static class MarkowitzConstants
 {
-    public const string Help = Cat.HelpBase + "/portfolio/markowitz";
+    public const string Help = Cat.HelpBase;
 
     public const string ReturnName = "PORT_RETURN";
     public const string ReturnDesc = "Portfolio expected return: w · mu (dot product of weights and mean returns).";

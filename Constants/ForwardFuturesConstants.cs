@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and argument text for the forward/futures (FWD_*) functions.</summary>
 internal static class ForwardFuturesConstants
 {
-    public const string Help = Cat.HelpBase + "/derivatives/forward-futures";
+    public const string Help = Cat.HelpBase;
 
     public const string PriceName = "FWD_PRICE";
     public const string PriceDesc = "Forward price on an asset with no income. F = S * exp(r * T).";

@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, defaults, and argument descriptions for the credit (CR_*) functions.</summary>
 internal static class CreditConstants
 {
-    public const string Help = Cat.HelpBase + "/credit/credit-derivatives";
+    public const string Help = Cat.HelpBase;
 
     /// <summary>Default premium payment frequency per year when omitted.</summary>
     public const int DefaultFrequency = 4;

@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, and help topics for the Black-Scholes (BS_*) functions.</summary>
 internal static class OptionsConstants
 {
-    public const string Help = Cat.HelpBase + "/options/black-scholes";
+    public const string Help = Cat.HelpBase;
 
     public const string CallName = "BS_CALL";
     public const string CallDesc = "Black-Scholes European call option price.";

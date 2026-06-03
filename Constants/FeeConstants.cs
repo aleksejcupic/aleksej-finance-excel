@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, defaults, and argument descriptions for the fee (FEE_*) functions.</summary>
 internal static class FeeConstants
 {
-    public const string Help = Cat.HelpBase + "/portfolio/fees";
+    public const string Help = Cat.HelpBase;
 
     // ── Literal defaults ──────────────────────────────────────────────────────
     public const int    DefaultDaysInYear   = 365;

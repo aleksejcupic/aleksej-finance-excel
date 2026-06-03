@@ -30,6 +30,9 @@ public class UserSettings
     /// <summary>Drops the cached settings so the next access reloads from disk.</summary>
     public static void Invalidate() => _cached = null;
 
+    /// <summary>Test seam: pins the cached settings without touching disk.</summary>
+    internal static void UseForTesting(UserSettings settings) => _cached = settings;
+
     // ── Default calculation parameters ───────────────────────────────────────
 
     /// <summary>Annual risk-free rate used when rf is omitted (e.g. 0.05 = 5%).</summary>

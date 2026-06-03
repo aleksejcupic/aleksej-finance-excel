@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and argument text for Black's model (BM_*) functions.</summary>
 internal static class BlackModelConstants
 {
-    public const string Help = Cat.HelpBase + "/derivatives/black-model";
+    public const string Help = Cat.HelpBase;
 
     public const string CapletName = "BM_CAPLET";
     public const string CapletDesc = "Single caplet (or floorlet) price using Black's model. Pays max(F-K,0)*delta*notional at reset. Set isFloor=TRUE for floorlet.";

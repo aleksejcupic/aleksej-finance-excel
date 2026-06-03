@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help, and defaults for the Monte Carlo (MC_*) functions.</summary>
 internal static class MonteCarloConstants
 {
-    public const string Help = Cat.HelpBase + "/options/monte-carlo";
+    public const string Help = Cat.HelpBase;
 
     public const int DefaultPaths = 10_000;
     public const int DefaultSteps = 50;

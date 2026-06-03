@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, defaults, and argument descriptions for the attribution (ATTR_*) functions.</summary>
 internal static class AttributionConstants
 {
-    public const string Help = Cat.HelpBase + "/portfolio/performance-attribution";
+    public const string Help = Cat.HelpBase;
 
     // ── Literal defaults ──────────────────────────────────────────────────────
     public const double DefaultGuess = 0.10;

@@ -3,7 +3,7 @@ namespace Aleksej.Finance.Excel.Constants;
 /// <summary>Names, descriptions, help topics, and argument text for the Risk metric functions.</summary>
 internal static class RiskConstants
 {
-    public const string Help = Cat.HelpBase + "/risk/risk-metrics";
+    public const string Help = Cat.HelpBase;
 
     // ── Core risk metrics ─────────────────────────────────────────────────────
     public const string SharpeName = "SHARPE_RATIO";

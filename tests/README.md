@@ -4,14 +4,14 @@ Three layers, because only some of this can run without Excel:
 
 | # | What | Covers | Runs |
 |---|------|--------|------|
-| 1 | **Unit tests** (`Aleksej.Finance.Excel.UnitTests`) | the add-in's own logic — `In.*` validators, `%`-normalization, `RangeHelper` | ✅ headless, **in CI**, with coverage |
-| 2 | **Excel integration** (`Aleksej.Finance.Excel.Tests`) | every UDF computed through the real loaded plugin | ⚠️ **local only** — drives real Excel |
+| 1 | **Unit tests** (`Aleksej.Finance.Excel.UnitTests`) | the add-in's own logic: `In.*` validators, `%`-normalization, `RangeHelper` | ✅ headless, **in CI**, with coverage |
+| 2 | **Excel integration** (`Aleksej.Finance.Excel.Tests`) | every UDF computed through the real loaded plugin | ⚠️ **local only** (drives real Excel) |
 | 3 | **Self-checking workbook** (`workbook/`) | eyeball PASS/FAIL for all 152 UDFs | 🖐️ manual |
 
 The financial **math** itself is already tested (xUnit + codecov) in the `Aleksej.Finance`
 library repo, so these focus on the Excel layer on top of it.
 
-## 1. Unit tests — automated, CI, coverage
+## 1. Unit tests (automated, CI, coverage)
 
 Pure C# tests of the validation/normalization layer. No Excel.
 
@@ -21,7 +21,7 @@ dotnet test tests/Aleksej.Finance.Excel.UnitTests -c Release /p:Platform=x64 --c
 Runs on every push via `.github/workflows/ci.yml` and uploads coverage to Codecov
 (set a `CODECOV_TOKEN` repo secret).
 
-## 2. Excel integration suite — local only
+## 2. Excel integration suite (local only)
 
 Uses ExcelDNA's official `ExcelDna.Testing` harness: launches real Excel, loads the add-in,
 evaluates each UDF as a formula, asserts the result (scalar / range / array / async / errors).
@@ -35,7 +35,7 @@ or run from Visual Studio Test Explorer (Excel opens, runs, closes).
 only *compiles* it (to catch breakage); running it requires a machine with Office (yours, or a
 self-hosted Windows runner).
 
-## 3. Self-checking workbook — manual
+## 3. Self-checking workbook (manual)
 
 `Aleksej.Finance-Tests.xlsx` lives in this folder (`workbook/`) ready to open. Load the add-in
 in Excel, open the workbook, press **Ctrl+Alt+F9**, and read the dashboard (`152 / 152 PASS`).
